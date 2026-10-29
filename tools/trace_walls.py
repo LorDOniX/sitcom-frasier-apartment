@@ -24,6 +24,7 @@ OPENINGS = os.path.join(ROOT, 'src', 'data', 'openings.json')
 OUT_JSON = os.path.join(ROOT, 'src', 'data', 'walls.json')
 OUT_FLOOR = os.path.join(ROOT, 'public', 'floor_mask.png')
 OUT_ROOMS = os.path.join(ROOT, 'public', 'rooms.png')
+OUT_FLOORS = os.path.join(ROOT, 'public', 'floors')
 OUT_DIR = os.path.join(ROOT, 'tools', 'out')
 
 THRESHOLD = 80      # jas < THRESHOLD => stěna
@@ -291,6 +292,10 @@ def room_map(walls, openings):
     # prostory (obývák/jídelna/kuchyně) se rozdělí podle nejbližšího semínka.
     from collections import deque
     bar = barrier(walls, openings)
+    # dělicí čáry jen pro mapu místností (hranice materiálu podlahy v otevřeném prostoru)
+    dd = ImageDraw.Draw(bar)
+    for line in openings.get('room_dividers', []):
+        dd.line([tuple(p) for p in line], fill=255, width=2)
     W, H = bar.size
     bpx = bar.load()
     lab = bytearray(W * H)
@@ -313,6 +318,14 @@ def room_map(walls, openings):
     # stěny a dveře přiřaď nejbližší místnosti (ať HUD ve dveřích nebliká)
     r = r.filter(ImageFilter.MaxFilter(7))
     r.save(OUT_ROOMS)
+
+    # masky podlah podle materiálu: každý pixel patří právě jednomu materiálu,
+    # takže se roviny podlah nepřekrývají (žádný z-fighting)
+    os.makedirs(OUT_FLOORS, exist_ok=True)
+    rooms = openings.get('rooms', [])
+    for mat in sorted({rm.get('floor', 'wood') for rm in rooms}):
+        ids = {i + 1 for i, rm in enumerate(rooms) if rm.get('floor', 'wood') == mat}
+        r.point(lambda v: 255 if v in ids else 0).save(os.path.join(OUT_FLOORS, f'{mat}.png'))
 
 
 def draw_openings(d, openings):

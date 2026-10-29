@@ -6,6 +6,7 @@ Hotový model bytu ve formátu pro web (glTF/GLB) s texturami **neexistuje**. By
 
 | Zdroj | Co obsahuje | Použitelnost pro three.js | Licence / cena | Doporučení |
 | --- | --- | --- | --- | --- |
+| **Fotografie výhledu** (`skybox.jpg`, dodaná) | panorama Seattlu z Kerry Parku, 3200 × 1243 | ✅ **používá se** jako výhled z balkonu | **původ a licence neznámé** | před zveřejněním ověřit autora / licenci, případně nahradit fotkou CC0 / CC-BY |
 | **Půdorys – I. A. Lizarralde** (`pudorys.jpg`) | rozvržení všech místností a nábytku, 1 : 100 | ✅ **už se používá** jako zdroj stěn, dveří, oken a jako textura podlahy | autorská kresba, prodává se jako tisk (pixels.com) | pro veřejné nasazení nahradit vlastní překreslenou podlahou nebo se zeptat autora |
 | **CGTrader – Sit Com Set** | 6 částí stavby + 60+ kusů nábytku, FBX + STL (~41 MB) | ⚠️ jde to: Blender → úprava měřítka → materiály → GLB. Model je pro 3D tisk, **bez textur a UV** | placené (~6 USD), licence z CGTrader | **koupit** – nejrychlejší zdroj tvarů charakteristického nábytku (pohovka, krb, klavír, kuchyň) |
 | **Cults3D – Sit Com Set** | stejný model jen v STL | ⚠️ horší než CGTrader (STL = jen trojúhelníky, žádné skupiny) | placené (~6 USD) | nekupovat, vzít CGTrader variantu |
@@ -36,12 +37,17 @@ Hotový model bytu ve formátu pro web (glTF/GLB) s texturami **neexistuje**. By
 
 ## 3. Přehled dalších fází
 
-### Fáze 2 – materiály a světlo (bez nákupu modelů)
-1. PBR textury z Poly Haven / ambientCG: parkety v obýváku a chodbách, dlažba v koupelnách a kuchyni, omítka stěn. Místo jedné roviny podlahy rozdělit podlahu podle `rooms.png` (každá místnost svůj materiál).
-2. Lišty, zárubně dveří, parapety, pilíře u oken – drobnosti, které nejvíc přidají na „architektuře“.
-3. Osvětlení: předpočítané nepřímé světlo (lightmapa z Blenderu) nebo aspoň `RectAreaLight` u oken + HDRI prostředí (`RoomEnvironment` / PMREM) pro odlesky.
-4. Stíny od slunce oknem (jedno `DirectionalLight` se shadow mapou omezenou na byt).
-5. Výhled: místo kreslené panoramy fotografie Seattlu od Space Needle (ekvirektangulární, CC0/CC-BY) nebo vlastní render.
+### Fáze 2 – materiály a světlo ✅ hotovo (29. 10. 2026)
+* Výhled z fotografie `skybox.jpg` (Kerry Park: Space Needle, downtown, Mount Rainier) za balkonem, procedurální pozadí dokola s navázanou oblohou, noční verze fotky.
+* PBR podlahy podle místností: parkety rybí kost (obývák, jídelna, chodby), koberec (ložnice, chodba domu), mramorová dlažba (koupelny, kuchyně, prádelna, komora), žula (balkon). Textury CC0 z Poly Haven a ambientCG.
+* Stěny z malované omítky (reliéf z normal mapy), soklové lišty, zárubně a obložky dveří, rámy a vnitřní parapety oken.
+* Slunce se stíny (sluneční skvrny pod okny obýváku), odlesky z `RoomEnvironment`, noční stropní svítidla.
+
+Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
+* předpočítané nepřímé světlo (lightmapa z Blenderu) – bez něj je výplňové světlo všude stejné,
+* `RectAreaLight` u velkých oken,
+* fotografie výhledu i do ostatních směrů (teď je fotka jen za balkonem, okna obýváku a ložnic koukají na procedurální pozadí),
+* sloučení drobných těles (zárubně, rámy oken) do jedné geometrie kvůli počtu draw callů.
 
 ### Fáze 3 – nábytek a typické předměty
 1. Koupit CGTrader *Sit Com Set*, v Blenderu: převést FBX, srovnat měřítko podle `furniture.json`, UV unwrap, materiály, export do GLB po kusech.
@@ -67,5 +73,6 @@ Hotový model bytu ve formátu pro web (glTF/GLB) s texturami **neexistuje**. By
 ## 4. Známá omezení prototypu
 * Měřítko je odhad (±10 %); pokud se najde kótovaný rozměr (např. šířka klavíru nebo výška dveří ze seriálu), stačí upravit `METERS_PER_PX` v `src/config.ts`.
 * Některé vnitřní příčky jsou v půdorysu šrafované a mohly se při trasování mírně zdeformovat; šatny a skříně mají jen otvory bez dveří.
-* Světla nemají stíny, takže prosvítají přes stěny (řeší fáze 2).
-* Nábytek je jen zástupný a na podlaze je zároveň vidět nakreslený nábytek z půdorysu (klávesa `P` přepne na parkety).
+* Stíny vrhá jen slunce; stropní svítidla (noc) stíny nemají a prosvítají přes stěny.
+* Nábytek je jen zástupný.
+* Fotka výhledu je jen jedna (110° za balkonem); jinými okny je vidět procedurální pozadí. Noční verze je vypočtená, ne fotografovaná – okna se rozsvěcují i na části stromů.

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EYE_HEIGHT, INTERACT_DISTANCE, SPAWN_PX, SPAWN_YAW } from './config';
 import { CollisionWorld } from './collision';
 import { Minimap } from './minimap';
@@ -20,10 +21,16 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 $('app').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x5d8fc7);
+const SKY_DAY = 0x4f9fd8;
+const SKY_NIGHT = 0x05081a;
+// odlesky (parkety, klavír, sklo) z jednoduchého prostředí místnosti
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 400);
 const spawn = toWorld(SPAWN_PX);
@@ -35,23 +42,34 @@ const collision = new CollisionWorld();
 const loader = new THREE.TextureLoader();
 const manager = loader.manager;
 
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
 const apartment = new THREE.Group();
 scene.add(apartment);
-apartment.add(buildWalls(collision));
-const floors = buildFloor(loader, renderer.capabilities.getMaxAnisotropy());
-apartment.add(floors.floor, floors.ceiling);
+apartment.add(buildWalls(collision, loader, maxAniso));
+const floors = buildFloor(loader, maxAniso);
+apartment.add(floors.group, floors.ceiling);
 const interactables: Interactable[] = buildOpenings(apartment, collision);
 buildFurniture(apartment, collision);
 
-const hemi = new THREE.HemisphereLight(0xeef3ff, 0xcdbb9c, 1.5);
+const hemi = new THREE.HemisphereLight(0xeef3ff, 0xe6d8c2, 0.75);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff1dc, 1.1);
-sun.position.set(-20, 30, -25);
-scene.add(sun);
+
+// Odpolední slunce: na fotce výhledu svítí zprava zezadu fotografa, tj. od jihozápadu
+// (v půdorysu zdola zleva). Do bytu tak padá okny obýváku a kuchyně; strop a stěny vrhají stín.
+const sun = new THREE.DirectionalLight(0xffe4c2, 5.5);
+sun.position.copy(new THREE.Vector3(-0.45, 0.42, 0.79).normalize().multiplyScalar(60));
+sun.target.position.set(0, 0, 0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 130 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+sun.shadow.radius = 3;
+scene.add(sun, sun.target);
 const lamps = buildLights(apartment);
 
-const skyline = new Skyline();
-scene.add(skyline.mesh);
+const skyline = new Skyline(manager, maxAniso);
+scene.add(skyline.group);
 
 const rooms = new Rooms(loader);
 const minimap = new Minimap($('minimap'));
@@ -61,10 +79,14 @@ const player = new Player(camera, renderer.domElement, collision);
 let night = false;
 function applyDayNight() {
   skyline.setNight(night);
-  scene.background = new THREE.Color(night ? 0x060914 : 0x5d8fc7);
-  hemi.intensity = night ? 0.3 : 1.5;
-  sun.intensity = night ? 0 : 1.1;
-  for (const l of lamps) l.intensity = night ? 9 : 2.5;
+  scene.background = new THREE.Color(night ? SKY_NIGHT : SKY_DAY);
+  scene.environmentIntensity = night ? 0.12 : 0.4;
+  hemi.intensity = night ? 0.25 : 0.75;
+  sun.intensity = night ? 0 : 5.5;
+  for (const l of lamps) {
+    l.intensity = night ? 9 : 0;
+    l.visible = night;
+  }
 }
 applyDayNight();
 

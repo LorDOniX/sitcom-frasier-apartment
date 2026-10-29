@@ -1,16 +1,30 @@
 import * as THREE from 'three';
+import data from '../data/openings.json';
 import { METERS_PER_PX, PLAN_H, PLAN_ORIGIN, PLAN_W, WALL_HEIGHT } from '../config';
+import { loadPbr } from './materials';
 
 export interface FloorSet {
-  floor: THREE.Mesh;
+  group: THREE.Group;
   ceiling: THREE.Mesh;
-  /** Přepne podlahu mezi barevným půdorysem a parketami. */
+  /** Přepne podlahu mezi materiály a barevným půdorysem. Vrací true, když je vidět půdorys. */
   togglePlan(): boolean;
 }
 
+/** Materiály podlah (klíč = rooms[].floor v openings.json). size = skutečná velikost textury v m. */
+// roughness bez mapy = pevná hodnota (roughness mapa parket z Poly Haven je na byt moc lesklá)
+const FLOOR_MATERIALS: Record<string, { dir: string; size: number; roughness?: number; color?: number; env?: number }> = {
+  wood: { dir: 'herringbone_parquet', size: 2.0, roughness: 0.62, env: 0.5 },
+  carpet: { dir: 'Carpet016', size: 1.0 },
+  tile: { dir: 'marble_tiles', size: 1.8, env: 0.6 },
+  stone: { dir: 'granite_tile', size: 2.4 },
+  corridor: { dir: 'Carpet012', size: 1.0 },
+};
+
 /**
- * Podlaha i strop jsou jedna rovina o velikosti celého půdorysu; tvar bytu
- * vyřezává alphaMap (public/floor_mask.png z tools/trace_walls.py).
+ * Podlahy jsou roviny o velikosti celého půdorysu; tvar každého materiálu vyřezává
+ * alphaMap z public/floors/<materiál>.png (generuje tools/trace_walls.py z mapy místností).
+ * Masky se nepřekrývají, pod nimi leží neutrální podklad (public/floor_mask.png),
+ * který zakryje případné škvíry na hranicích.
  */
 export function buildFloor(loader: THREE.TextureLoader, maxAniso: number): FloorSet {
   const w = PLAN_W * METERS_PER_PX;
@@ -21,87 +35,70 @@ export function buildFloor(loader: THREE.TextureLoader, maxAniso: number): Floor
   const cx = (PLAN_W / 2 - PLAN_ORIGIN[0]) * METERS_PER_PX;
   const cz = (PLAN_H / 2 - PLAN_ORIGIN[1]) * METERS_PER_PX;
 
+  const loadMask = (url: string) => {
+    const t = loader.load(url);
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
+    return t;
+  };
+  const mask = loadMask('/floor_mask.png');
+  const group = new THREE.Group();
+
+  const plane = (mat: THREE.Material, y: number) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(cx, y, cz);
+    m.receiveShadow = true;
+    group.add(m);
+    return m;
+  };
+
+  // podklad
+  plane(new THREE.MeshStandardMaterial({ color: 0x8a7a66, roughness: 0.8, alphaMap: mask, alphaTest: 0.5 }), -0.004);
+
+  const materialPlanes: THREE.Mesh[] = [];
+  const used = new Set(data.rooms.map((r) => r.floor));
+  for (const key of used) {
+    const def = FLOOR_MATERIALS[key];
+    if (!def) continue;
+    const maps = def.roughness === undefined ? undefined : (['map', 'normalMap'] as const);
+    const pbr = loadPbr(loader, def.dir, new THREE.Vector2(w / def.size, h / def.size), maxAniso, maps && [...maps]);
+    const mat = new THREE.MeshStandardMaterial({
+      ...pbr,
+      color: def.color ?? 0xffffff,
+      roughness: def.roughness ?? 1,
+      envMapIntensity: def.env ?? 1,
+      alphaMap: loadMask(`/floors/${key}.png`),
+      alphaTest: 0.5,
+    });
+    materialPlanes.push(plane(mat, 0));
+  }
+
   const planTex = loader.load('/pudorys.jpg');
   planTex.colorSpace = THREE.SRGBColorSpace;
   planTex.anisotropy = maxAniso;
-
-  const mask = loader.load('/floor_mask.png');
-  mask.generateMipmaps = false;
-  mask.minFilter = THREE.LinearFilter;
-
-  const parquet = makeParquetTexture();
-  parquet.anisotropy = maxAniso;
-  parquet.repeat.set(w / 1.6, h / 1.6);
-
-  const floorMat = new THREE.MeshStandardMaterial({
-    map: planTex,
-    alphaMap: mask,
-    alphaTest: 0.5,
-    roughness: 0.75,
-  });
-  const floor = new THREE.Mesh(geo, floorMat);
-  floor.position.set(cx, 0, cz);
-  floor.name = 'floor';
+  const planFloor = plane(new THREE.MeshStandardMaterial({ map: planTex, alphaMap: mask, alphaTest: 0.5, roughness: 0.75 }), 0.001);
+  planFloor.visible = false;
 
   const ceilMat = new THREE.MeshStandardMaterial({
-    color: 0xf4f0e8,
+    color: 0xf6f2ea,
     alphaMap: mask,
     alphaTest: 0.5,
     roughness: 0.95,
     side: THREE.BackSide,
+    shadowSide: THREE.DoubleSide,
   });
   const ceiling = new THREE.Mesh(geo, ceilMat);
   ceiling.position.set(cx, WALL_HEIGHT, cz);
+  ceiling.castShadow = true;
   ceiling.name = 'ceiling';
 
-  let showPlan = true;
   return {
-    floor,
+    group,
     ceiling,
     togglePlan() {
-      showPlan = !showPlan;
-      floorMat.map = showPlan ? planTex : parquet;
-      floorMat.roughness = showPlan ? 0.75 : 0.45;
-      floorMat.needsUpdate = true;
-      return showPlan;
+      planFloor.visible = !planFloor.visible;
+      for (const m of materialPlanes) m.visible = !planFloor.visible;
+      return planFloor.visible;
     },
   };
-}
-
-/** Procedurální prkenná podlaha (dlaždicovatelná) – zástupce, než se doplní PBR textura z Poly Haven. */
-function makeParquetTexture(): THREE.CanvasTexture {
-  const size = 512;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d')!;
-  const rows = 8;
-  const plankW = size / rows;
-  const plankL = size / 2;
-  let seed = 7;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let row = 0; row < rows; row++) {
-    const y = row * plankW;
-    const shift = (row * 0.37 % 1) * plankL;
-    for (let k = -1; k < 3; k++) {
-      const x = shift + k * plankL;
-      g.fillStyle = `hsl(${28 + rnd() * 6}, ${30 + rnd() * 10}%, ${36 + rnd() * 10}%)`;
-      for (const dx of [0, -size, size]) {
-        g.fillRect(x + dx, y, plankL - 2, plankW - 2);
-      }
-      g.strokeStyle = 'rgba(40,20,5,0.16)';
-      for (let n = 0; n < 6; n++) {
-        const yy = y + 2 + rnd() * (plankW - 4);
-        for (const dx of [0, -size, size]) {
-          g.beginPath();
-          g.moveTo(x + dx, yy);
-          g.lineTo(x + dx + plankL - 2, yy + (rnd() - 0.5) * 3);
-          g.stroke();
-        }
-      }
-    }
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
 }

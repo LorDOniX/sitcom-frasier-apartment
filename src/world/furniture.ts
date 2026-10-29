@@ -105,6 +105,9 @@ function buildItem(it: Item): THREE.Object3D {
 export function buildFurniture(root: THREE.Object3D, collision: CollisionWorld) {
   for (const it of data.items as unknown as Item[]) {
     const obj = buildItem(it);
+    obj.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+    });
     const p = toWorld(it.pos);
     obj.position.set(p.x, 0, p.y);
     // rot v půdorysu je po směru hodinových ručiček (osa y dolů) => ve three.js záporný úhel

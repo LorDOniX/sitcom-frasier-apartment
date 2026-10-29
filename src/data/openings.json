@@ -1,5 +1,5 @@
 {
-  "_comment": "Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
+  "_comment": "rooms[].floor = materiál podlahy (wood, carpet, tile, stone, corridor). Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
   "doors": [
     { "id": "front", "label": "Vstupní dveře", "hinge": [403, 769], "tip": [403, 814], "open": [440, 770], "t": 7 },
     { "id": "powder", "label": "Toaleta pro hosty", "hinge": [411, 744], "tip": [446, 744], "open": [413, 712], "t": 6 },
@@ -34,23 +34,26 @@
   "railings": [
     { "a": [577, 478], "b": [857, 478], "h": 1.05, "t": 4 }
   ],
+  "room_dividers": [
+    [[893, 722], [930, 766], [978, 801]]
+  ],
   "rooms": [
-    { "name": "Obývací pokoj", "seed": [640, 800] },
-    { "name": "Kuchyně", "seed": [1040, 760] },
-    { "name": "Balkon", "seed": [718, 520] },
-    { "name": "Jídelna a klavír", "seed": [840, 640] },
-    { "name": "Předsíň", "seed": [440, 800] },
-    { "name": "Chodba domu (19. patro)", "seed": [372, 800] },
-    { "name": "Chodba k ložnicím", "seed": [565, 535] },
-    { "name": "Frasierova ložnice", "seed": [400, 480] },
-    { "name": "Frasierova koupelna", "seed": [300, 230] },
-    { "name": "Martinova ložnice", "seed": [290, 560] },
-    { "name": "Martinova koupelna", "seed": [165, 350] },
-    { "name": "Komora", "seed": [495, 640] },
-    { "name": "Toaleta pro hosty", "seed": [430, 718] },
-    { "name": "Chodba k Daphne", "seed": [960, 600] },
-    { "name": "Daphnin pokoj", "seed": [1000, 450] },
-    { "name": "Daphnina koupelna", "seed": [1040, 320] },
-    { "name": "Prádelna", "seed": [1085, 640] }
+    { "name": "Obývací pokoj", "seed": [640, 800], "floor": "wood" },
+    { "name": "Kuchyně", "seed": [1040, 760], "floor": "tile" },
+    { "name": "Balkon", "seed": [718, 520], "floor": "stone" },
+    { "name": "Jídelna a klavír", "seed": [840, 640], "floor": "wood" },
+    { "name": "Předsíň", "seed": [440, 800], "floor": "wood" },
+    { "name": "Chodba domu (19. patro)", "seed": [372, 800], "floor": "corridor" },
+    { "name": "Chodba k ložnicím", "seed": [565, 535], "floor": "wood" },
+    { "name": "Frasierova ložnice", "seed": [400, 480], "floor": "carpet" },
+    { "name": "Frasierova koupelna", "seed": [300, 230], "floor": "tile" },
+    { "name": "Martinova ložnice", "seed": [290, 560], "floor": "carpet" },
+    { "name": "Martinova koupelna", "seed": [165, 350], "floor": "tile" },
+    { "name": "Komora", "seed": [495, 640], "floor": "tile" },
+    { "name": "Toaleta pro hosty", "seed": [430, 718], "floor": "tile" },
+    { "name": "Chodba k Daphne", "seed": [960, 600], "floor": "wood" },
+    { "name": "Daphnin pokoj", "seed": [1000, 450], "floor": "carpet" },
+    { "name": "Daphnina koupelna", "seed": [1040, 320], "floor": "tile" },
+    { "name": "Prádelna", "seed": [1085, 640], "floor": "tile" }
   ]
 }
