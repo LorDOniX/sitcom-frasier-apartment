@@ -5,6 +5,7 @@ import data from '../data/furniture.json';
 import { WALL_HEIGHT } from '../config';
 import { toWorld, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
+import { floorHeight } from '../levels';
 import { abstractPainting, PropFactory } from './props';
 import { nearestWallFace } from './walls';
 
@@ -36,6 +37,8 @@ interface Item {
   light?: boolean;
   /** přichytit zády k nejbližší stěně (obrazy, krb); pos = bod v místnosti u stěny, y = výška spodku */
   wall?: boolean;
+  /** visí ze stropu: y se měří od výšky 0, ne od podlahy pod ním (lustry nad sníženou částí bytu) */
+  hang?: boolean;
 }
 
 interface Painting {
@@ -86,6 +89,7 @@ export function buildFurniture(
 
   for (const it of data.items as unknown as Item[]) {
     const p = toWorld(it.pos);
+    const floorY = it.hang ? 0 : floorHeight(p.x, p.y);
     let yaw = -THREE.MathUtils.degToRad(it.rot); // rot v půdorysu je po směru hodinových ručiček
     if (it.wall) {
       const face = nearestWallFace(p);
@@ -95,7 +99,7 @@ export function buildFurniture(
       }
     }
     const holder = new THREE.Group();
-    holder.position.set(p.x, it.y ?? 0, p.y);
+    holder.position.set(p.x, floorY + (it.y ?? 0), p.y);
     holder.rotation.y = yaw;
     holder.name = it.name;
     root.add(holder);
@@ -195,7 +199,8 @@ function buildPainting(pt: Painting, loader: THREE.TextureLoader, aniso: number)
     g.add(m);
   }
   // přední strana plátna (+Z) míří od stěny do místnosti
-  g.position.set(face.point.x + face.normal.x * 0.03, pt.y, face.point.y + face.normal.y * 0.03);
+  const p = toWorld(pt.pos);
+  g.position.set(face.point.x + face.normal.x * 0.03, floorHeight(p.x, p.y) + pt.y, face.point.y + face.normal.y * 0.03);
   g.rotation.y = Math.atan2(face.normal.x, face.normal.y);
   return g;
 }

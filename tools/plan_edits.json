@@ -1,5 +1,5 @@
 {
-  "_comment": "Ruční úpravy masky stěn (px půdorysu). erase_* = smazat (text, nábytek, okolí bytu), add_* = dokreslit (add_lines: x1, y1, x2, y2, tloušťka; zde kus chodby domu před vstupními dveřmi).",
+  "_comment": "Ruční úpravy masky stěn (px půdorysu). erase_* = smazat (text, nábytek, okolí bytu), add_* = dokreslit (add_lines: x1, y1, x2, y2, tloušťka; zde kus chodby domu před vstupními dveřmi; add_polys: plná zeď místo tří oken v dlouhé stěně obýváku).",
   "erase_rects": [
     [
       520,
@@ -86,6 +86,24 @@
     ]
   ],
   "add_polys": [
+    [
+      [
+        537,
+        902
+      ],
+      [
+        899,
+        902
+      ],
+      [
+        899,
+        911
+      ],
+      [
+        537,
+        911
+      ]
+    ],
     [
       [
         718,

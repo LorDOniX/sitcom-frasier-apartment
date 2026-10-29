@@ -22,6 +22,7 @@ SRC = os.path.join(ROOT, 'pudorys.jpg')
 EDITS = os.path.join(ROOT, 'tools', 'plan_edits.json')
 OPENINGS = os.path.join(ROOT, 'src', 'data', 'openings.json')
 OUT_JSON = os.path.join(ROOT, 'src', 'data', 'walls.json')
+OUT_LEVELS = os.path.join(ROOT, 'src', 'data', 'levels.json')
 OUT_FLOOR = os.path.join(ROOT, 'public', 'floor_mask.png')
 OUT_ROOMS = os.path.join(ROOT, 'public', 'rooms.png')
 OUT_FLOORS = os.path.join(ROOT, 'public', 'floors')
@@ -254,19 +255,21 @@ def point_in_poly(pt, poly):
     return inside
 
 
-def opening_lines(openings):
+def opening_lines(openings, skip_doors=()):
     for dr in openings.get('doors', []):
+        if dr['id'] in skip_doors:
+            continue
         yield dr['hinge'], dr['tip'], dr.get('t', 6)
     for key in ('sliders', 'windows', 'railings'):
         for o in openings.get(key, []):
             yield o['a'], o['b'], o.get('t', 6)
 
 
-def barrier(walls, openings):
+def barrier(walls, openings, skip_doors=()):
     """Maska stěn doplněná o zavřené dveře, okna a zábradlí."""
     m = walls.copy()
     d = ImageDraw.Draw(m)
-    for a, b, t in opening_lines(openings):
+    for a, b, t in opening_lines(openings, skip_doors):
         # prodloužit o pár px, ať se uzavřou drobné mezery u ostění
         (ax, ay), (bx, by) = a, b
         ln = max(1e-6, ((bx - ax) ** 2 + (by - ay) ** 2) ** 0.5)
@@ -285,8 +288,55 @@ def floor_mask(walls, openings):
     m.point(lambda v: 0 if v == 128 else 255).save(OUT_FLOOR)
 
 
-def room_map(walls, openings):
-    """Mapa místností pro HUD (public/rooms.png)."""
+def level_map(walls, openings):
+    """Výškové úrovně podlahy: obrázek, kde pixel = index úrovně (0 = základní výška 0 m).
+
+    Úroveň se `seed` je zaplavená oblast (stěny, zavřené dveře kromě `open_doors`, čára `boundary`),
+    rozšířená o pár px pod stěny, ať podlaha nekončí škvírou u paty zdi. Úroveň s `poly`
+    je přesný mnohoúhelník (schod). Pozdější úroveň přepisuje dřívější.
+    """
+    W, H = walls.size
+    lv = Image.new('L', (W, H), 0)
+    for i, level in enumerate(openings.get('levels', []), start=1):
+        if 'poly' in level:
+            region = Image.new('L', (W, H), 0)
+            ImageDraw.Draw(region).polygon([tuple(p) for p in level['poly']], fill=255)
+        else:
+            bar = barrier(walls, openings, set(level.get('open_doors', [])))
+            line = Image.new('L', (W, H), 0)
+            ImageDraw.Draw(line).line([tuple(p) for p in level['boundary']], fill=255, width=3)
+            bar.paste(255, mask=line)
+            m = bar.copy()
+            x, y = level['seed']
+            ImageDraw.floodfill(m, (x, y), 128)
+            region = m.point(lambda v: 255 if v == 128 else 0)
+            # pixely dělicí čáry patří této úrovni, jinak by v nich zůstal proužek základní podlahy
+            region.paste(255, mask=line)
+            # rozšířit jen pod stěny/dveře, ne přes dělicí čáru do vedlejší úrovně
+            grown = region.filter(ImageFilter.MaxFilter(7))
+            allowed = bar.copy()
+            allowed.paste(0, mask=line)
+            allowed.paste(255, mask=region)
+            region = Image.composite(grown, region, allowed)
+        lv.paste(i, mask=region)
+    return lv
+
+
+def level_polygons(lv, index):
+    """Obrysy oblasti jedné úrovně v px (vnější smyčky, zjednodušené)."""
+    m = lv.point(lambda v: 255 if v == index else 0)
+    out = []
+    for lp in trace_loops(m):
+        s = simplify_loop(lp, DP_EPS)
+        if len(s) >= 4:
+            s = regularize(s)
+        if len(s) >= 3 and area(s) > 50:
+            out.append([[round(x, 1), round(y, 1)] for x, y in s])
+    return out
+
+
+def room_map(walls, openings, lv):
+    """Mapa místností pro HUD (public/rooms.png) a masky podlah podle materiálu a úrovně."""
     # mapa místností: hodnota pixelu = index místnosti + 1 (0 = nic).
     # Geodetický Voronoi: BFS ze všech semínek najednou, takže otevřené
     # prostory (obývák/jídelna/kuchyně) se rozdělí podle nejbližšího semínka.
@@ -319,13 +369,40 @@ def room_map(walls, openings):
     r = r.filter(ImageFilter.MaxFilter(7))
     r.save(OUT_ROOMS)
 
-    # masky podlah podle materiálu: každý pixel patří právě jednomu materiálu,
-    # takže se roviny podlah nepřekrývají (žádný z-fighting)
+    # masky podlah podle materiálu a výškové úrovně: každý pixel patří právě jedné
+    # kombinaci, takže se roviny podlah nepřekrývají (žádný z-fighting)
     os.makedirs(OUT_FLOORS, exist_ok=True)
     rooms = openings.get('rooms', [])
-    for mat in sorted({rm.get('floor', 'wood') for rm in rooms}):
-        ids = {i + 1 for i, rm in enumerate(rooms) if rm.get('floor', 'wood') == mat}
-        r.point(lambda v: 255 if v in ids else 0).save(os.path.join(OUT_FLOORS, f'{mat}.png'))
+    floor = Image.open(OUT_FLOOR).convert('L')
+    levels = [{'name': 'základní', 'y': 0.0}] + openings.get('levels', [])
+    out = []
+    for li, level in enumerate(levels):
+        suffix = '' if li == 0 else f'_{li}'
+        inlv = lv.point(lambda v: 255 if v == li else 0)
+        # podlaha zasahuje o pár px pod výše položené sousední úrovně (tam ji vyšší podlaha zakryje),
+        # ať u paty schodu nevznikne škvíra ze schodovitého okraje masky
+        # (jen pod podlahu, ne pod stěny – obrys stěny ve 3D se od rastru o pixel liší a podlaha by z ní trčela)
+        higher = {i for i, o in enumerate(levels) if o['y'] > level['y']}
+        if higher:
+            target = lv.point(lambda v: 255 if v in higher else 0)
+            target.paste(0, mask=walls)
+            under = Image.composite(inlv.filter(ImageFilter.MaxFilter(9)), Image.new('L', r.size, 0), target)
+            inlv = Image.composite(under, inlv, under)
+        entry = {'name': level['name'], 'y': level['y'], 'floors': {}}
+        if li:
+            entry['polygons'] = level_polygons(lv, li)
+        for mat in sorted({rm.get('floor', 'wood') for rm in rooms}):
+            ids = {i + 1 for i, rm in enumerate(rooms) if rm.get('floor', 'wood') == mat}
+            m = Image.composite(r.point(lambda v: 255 if v in ids else 0), Image.new('L', r.size, 0), inlv)
+            if li and not m.getbbox():
+                continue
+            m.save(os.path.join(OUT_FLOORS, f'{mat}{suffix}.png'))
+            entry['floors'][mat] = f'/floors/{mat}{suffix}.png'
+        Image.composite(floor, Image.new('L', r.size, 0), inlv).save(os.path.join(OUT_FLOORS, f'base{suffix}.png'))
+        entry['base'] = f'/floors/base{suffix}.png'
+        out.append(entry)
+    with open(OUT_LEVELS, 'w') as f:
+        json.dump({'levels': out}, f, ensure_ascii=False, separators=(',', ':'))
 
 
 def draw_openings(d, openings):
@@ -375,7 +452,8 @@ def main():
 
     openings = json.load(open(OPENINGS)) if os.path.exists(OPENINGS) else {}
     floor_mask(m, openings)
-    room_map(m, openings)
+    lv = level_map(m, openings)
+    room_map(m, openings, lv)
 
     # kontrolní překryv
     base = Image.open(SRC).convert('RGB')
@@ -386,6 +464,9 @@ def main():
         for h in p['holes']:
             d.polygon([tuple(pt) for pt in h], fill=(0, 0, 0, 0), outline=(0, 160, 255, 255))
     draw_openings(d, openings)
+    for level in openings.get('levels', []):
+        pts = level.get('poly') or level.get('boundary')
+        d.line([tuple(p) for p in pts] + ([tuple(pts[0])] if 'poly' in level else []), fill=(255, 200, 0, 255), width=2)
     Image.alpha_composite(base.convert('RGBA'), ov).convert('RGB').save(os.path.join(OUT_DIR, 'walls_overlay.png'))
 
     nverts = sum(len(p['outer']) + sum(len(h) for h in p['holes']) for p in polys)

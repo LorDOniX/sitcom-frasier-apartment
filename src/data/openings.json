@@ -1,5 +1,5 @@
 {
-  "_comment": "rooms[].floor = materiál podlahy (wood, carpet, tile, stone, corridor). Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
+  "_comment": "levels = výškové úrovně podlahy (ostatní je na 0): seed + boundary = zaplavená oblast ohraničená stěnami, zavřenými dveřmi (kromě open_doors) a lomenou čárou boundary; poly = přesný mnohoúhelník (schod). Pozdější úroveň přepisuje dřívější. rooms[].floor = materiál podlahy (wood, carpet, tile, stone, corridor). Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
   "doors": [
     { "id": "front", "label": "Vstupní dveře", "hinge": [403, 769], "tip": [403, 814], "open": [440, 770], "t": 7 },
     { "id": "powder", "label": "Toaleta pro hosty", "hinge": [411, 744], "tip": [446, 744], "open": [413, 712], "t": 6 },
@@ -19,9 +19,6 @@
   "windows": [
     { "a": [617, 537], "b": [668, 583], "sill": 0.0, "head": 2.4, "t": 4 },
     { "a": [767, 583], "b": [817, 534], "sill": 0.0, "head": 2.4, "t": 4 },
-    { "a": [537, 907], "b": [640, 907], "sill": 0.75, "head": 2.4, "t": 9 },
-    { "a": [667, 907], "b": [768, 907], "sill": 0.75, "head": 2.4, "t": 9 },
-    { "a": [795, 907], "b": [898, 907], "sill": 0.75, "head": 2.4, "t": 9 },
     { "a": [430, 340], "b": [482, 393], "sill": 0.5, "head": 2.4, "t": 8 },
     { "a": [937, 410], "b": [976, 375], "sill": 0.8, "head": 2.3, "t": 8 },
     { "a": [1083, 867], "b": [1108, 840], "sill": 1.0, "head": 2.2, "t": 8 },
@@ -33,6 +30,12 @@
   ],
   "railings": [
     { "a": [577, 478], "b": [857, 478], "h": 1.05, "t": 4 }
+  ],
+  "levels": [
+    { "name": "Obývák, jídelna, kuchyně a předsíň", "y": -0.34, "seed": [640, 800], "open_doors": ["front", "powder"],
+      "boundary": [[575, 598], [717.5, 740.5], [809, 649], [888, 728], [981, 645]] },
+    { "name": "Schody k balkonu", "y": -0.17,
+      "poly": [[575.5, 598.5], [585, 589], [718, 722], [810, 630], [898, 718], [888, 728], [809, 649], [717.5, 740.5]] }
   ],
   "room_dividers": [
     [[893, 722], [930, 766], [978, 801]]

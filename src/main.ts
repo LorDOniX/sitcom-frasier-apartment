@@ -5,6 +5,7 @@ import { CollisionWorld } from './collision';
 import { Minimap } from './minimap';
 import { toPlan, toWorld } from './plan';
 import { Player } from './player';
+import { buildSteps, floorHeight } from './levels';
 import { Rooms } from './rooms';
 import { buildFloor } from './world/floor';
 import { buildFurniture, buildLights } from './world/furniture';
@@ -34,7 +35,7 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 400);
 const spawn = toWorld(SPAWN_PX);
-camera.position.set(spawn.x, EYE_HEIGHT, spawn.y);
+camera.position.set(spawn.x, floorHeight(spawn.x, spawn.y) + EYE_HEIGHT, spawn.y);
 camera.rotation.set(0, SPAWN_YAW, 0, 'YXZ');
 
 // --- svět ------------------------------------------------------------------
@@ -47,7 +48,7 @@ const apartment = new THREE.Group();
 scene.add(apartment);
 apartment.add(buildWalls(collision, loader, maxAniso));
 const floors = buildFloor(loader, maxAniso);
-apartment.add(floors.group, floors.ceiling);
+apartment.add(floors.group, floors.ceiling, buildSteps());
 const interactables: Interactable[] = buildOpenings(apartment, collision);
 const furniture = buildFurniture(apartment, collision, loader, maxAniso);
 
@@ -153,7 +154,7 @@ window.addEventListener('resize', () => {
 });
 
 // ladění z konzole / automatických testů
-Object.assign(window, { __frasier: { camera, player, interactables, toPlan, toWorld, scene } });
+Object.assign(window, { __frasier: { camera, player, interactables, toPlan, toWorld, scene, floorHeight } });
 
 // --- smyčka ----------------------------------------------------------------
 const timer = new THREE.Timer();

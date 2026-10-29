@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { EYE_HEIGHT, PLAYER_RADIUS, RUN_SPEED, WALK_SPEED } from './config';
 import type { CollisionWorld } from './collision';
+import { floorHeight } from './levels';
 
 /** Pohyb první osobou: WASD + myš (Pointer Lock), kolize kruhu se stěnami. */
 export class Player {
@@ -10,6 +11,8 @@ export class Player {
   private keys = new Set<string>();
   private velocity = new THREE.Vector2();
   private bob = 0;
+  /** výška podlahy pod hráčem, plynule dotahovaná (schody) */
+  private floorY: number;
 
   constructor(
     private camera: THREE.PerspectiveCamera,
@@ -17,6 +20,7 @@ export class Player {
     private world: CollisionWorld,
   ) {
     this.controls = new PointerLockControls(camera, dom);
+    this.floorY = floorHeight(camera.position.x, camera.position.z);
     window.addEventListener('keydown', (e) => this.keys.add(e.code));
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
@@ -61,9 +65,12 @@ export class Player {
     this.camera.position.x = pos.x;
     this.camera.position.z = pos.y;
 
+    // výška podlahy (snížený obývák, schody) – plynule, ať schod není skok
+    this.floorY += (floorHeight(pos.x, pos.y) - this.floorY) * Math.min(1, dt * 10);
+
     // jemné pohupování při chůzi
     const moving = this.velocity.length();
     this.bob += dt * moving * 5.5;
-    this.camera.position.y = EYE_HEIGHT + Math.sin(this.bob) * 0.018 * Math.min(1, moving / WALK_SPEED);
+    this.camera.position.y = this.floorY + EYE_HEIGHT + Math.sin(this.bob) * 0.018 * Math.min(1, moving / WALK_SPEED);
   }
 }

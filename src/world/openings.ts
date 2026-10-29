@@ -3,6 +3,7 @@ import data from '../data/openings.json';
 import { DOOR_HEIGHT, WALL_HEIGHT } from '../config';
 import { boxBetween, pxToM, toWorld, yawFromDir, type Px } from '../plan';
 import type { CollisionWorld, Segment } from '../collision';
+import { floorHeight } from '../levels';
 
 interface DoorDef {
   id: string;
@@ -115,7 +116,7 @@ class HingedDoor implements Interactable {
   private width: number;
   private baseYaw: number;
 
-  constructor(d: DoorDef, root: THREE.Object3D, collision: CollisionWorld) {
+  constructor(d: DoorDef, root: THREE.Object3D, top: number, collision: CollisionWorld) {
     this.label = d.label;
     const H = toWorld(d.hinge);
     const T = toWorld(d.tip);
@@ -154,7 +155,7 @@ class HingedDoor implements Interactable {
     this.targets.push(leaf);
 
     // nadpraží a zárubeň
-    root.add(solid(boxBetween(d.hinge, d.tip, pxToM(d.t ?? 6), DOOR_HEIGHT, WALL_HEIGHT, lintelMat)));
+    root.add(solid(boxBetween(d.hinge, d.tip, pxToM(d.t ?? 6), DOOR_HEIGHT, top, lintelMat)));
     addCasing(root, H, T, pxToM(d.t ?? 6), d.id === 'front' ? frontCasingMat : casingMat);
 
     collision.addDynamic(() => {
@@ -185,7 +186,7 @@ class SlidingDoor implements Interactable {
   private B: THREE.Vector2;
   private offset: THREE.Vector2;
 
-  constructor(s: SliderDef, root: THREE.Object3D, collision: CollisionWorld) {
+  constructor(s: SliderDef, root: THREE.Object3D, top: number, collision: CollisionWorld) {
     this.label = s.label;
     this.A = toWorld(s.a);
     this.B = toWorld(s.b);
@@ -218,7 +219,7 @@ class SlidingDoor implements Interactable {
     root.add(this.panel);
     this.targets.push(glass);
 
-    root.add(solid(boxBetween(s.a, s.b, pxToM(s.t ?? 4) + 0.04, head, WALL_HEIGHT, lintelMat)));
+    root.add(solid(boxBetween(s.a, s.b, pxToM(s.t ?? 4) + 0.04, head, top, lintelMat)));
 
     collision.addDynamic(() => {
       const o = this.offset.clone().multiplyScalar(this.t);
@@ -243,11 +244,11 @@ class SlidingDoor implements Interactable {
 }
 
 /** Okno: parapetní zeď, sklo s rámem a nadpraží; nebo jen skleněná příčka (kind: "glass"). */
-function buildWindow(w: WindowDef, root: THREE.Object3D, collision: CollisionWorld) {
+function buildWindow(w: WindowDef, root: THREE.Object3D, top: number, collision: CollisionWorld) {
   const t = pxToM(w.t ?? 8);
   if (w.kind !== 'glass') {
     if (w.sill > 0) root.add(solid(boxBetween(w.a, w.b, t, 0, w.sill, lintelMat)));
-    if (w.head < WALL_HEIGHT) root.add(solid(boxBetween(w.a, w.b, t, w.head, WALL_HEIGHT, lintelMat)));
+    if (w.head < top) root.add(solid(boxBetween(w.a, w.b, t, w.head, top, lintelMat)));
     root.add(solid(boxBetween(w.a, w.b, 0.06, w.sill, w.sill + 0.05, frameMat)));
     root.add(solid(boxBetween(w.a, w.b, 0.06, w.head - 0.05, w.head, frameMat)));
     // svislé rámy na koncích + vnitřní parapet
@@ -281,11 +282,27 @@ function buildRailing(r: RailingDef, root: THREE.Object3D, collision: CollisionW
   collision.addStatic(segOf(toWorld(r.a), toWorld(r.b)));
 }
 
+/**
+ * Otvor se staví ve skupině posunuté na výšku podlahy (nižší z obou stran stěny);
+ * `top` = výška stropu měřená od této podlahy, ať nadpraží sahá až ke stropu.
+ */
+function atFloor(root: THREE.Object3D, a: Px, b: Px): [THREE.Group, number] {
+  const A = toWorld(a);
+  const B = toWorld(b);
+  const mid = A.clone().add(B).multiplyScalar(0.5);
+  const n = new THREE.Vector2(-(B.y - A.y), B.x - A.x).normalize().multiplyScalar(0.35);
+  const y = Math.min(floorHeight(mid.x + n.x, mid.y + n.y), floorHeight(mid.x - n.x, mid.y - n.y));
+  const g = new THREE.Group();
+  g.position.y = y;
+  root.add(g);
+  return [g, WALL_HEIGHT - y];
+}
+
 export function buildOpenings(root: THREE.Object3D, collision: CollisionWorld): Interactable[] {
   const items: Interactable[] = [];
-  for (const d of data.doors as unknown as DoorDef[]) items.push(new HingedDoor(d, root, collision));
-  for (const s of data.sliders as unknown as SliderDef[]) items.push(new SlidingDoor(s, root, collision));
-  for (const w of data.windows as unknown as WindowDef[]) buildWindow(w, root, collision);
+  for (const d of data.doors as unknown as DoorDef[]) items.push(new HingedDoor(d, ...atFloor(root, d.hinge, d.tip), collision));
+  for (const s of data.sliders as unknown as SliderDef[]) items.push(new SlidingDoor(s, ...atFloor(root, s.a, s.b), collision));
+  for (const w of data.windows as unknown as WindowDef[]) buildWindow(w, ...atFloor(root, w.a, w.b), collision);
   for (const r of data.railings as unknown as RailingDef[]) buildRailing(r, root, collision);
   return items;
 }

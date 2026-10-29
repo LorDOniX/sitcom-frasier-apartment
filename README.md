@@ -35,8 +35,9 @@ verze z `public/`. Úvodní načtení je ~11,5 MB (noční fotka 1,1 MB se stáh
 pudorys.jpg ──► tools/trace_walls.py ──► src/data/walls.json      (polygony stěn)
                      ▲                    public/floor_mask.png    (tvar podlahy a stropu)
 tools/plan_edits.json┘                    public/rooms.png         (mapa místností pro HUD)
-                                          public/floors/*.png      (masky materiálů podlah)
-src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha – ručně zadané v px půdorysu)
+                                          public/floors/*.png      (masky materiálů podlah po výškových úrovních)
+                                          src/data/levels.json     (obrysy výškových úrovní)
+src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha, výškové úrovně – ručně zadané v px půdorysu)
 src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, světla)
 public/models/          (glTF modely CC0 – viz public/models/README.md)
 assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z 3D Warehouse, fotky)
@@ -46,6 +47,7 @@ assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z
 * **Stěny**: prahování černé barvy → morfologické otevření → ruční úpravy (`tools/plan_edits.json`: smazat text/nábytek, dokreslit chybějící zdi) → trasování obrysu → zjednodušení a srovnání hran na násobky 45° → `ExtrudeGeometry` do výšky 2,75 m.
 * **Měřítko**: 0,027 m/px (≈ 37 px na metr), odhadnuto z šířky dveří a postelí. Mění se v `src/config.ts`.
 * **Dveře**: v `openings.json` je pant (`hinge`), volný konec křídla (`tip`) a bod, kam se otvírají (`open`). Nadpraží se generuje automaticky.
+* **Výškové úrovně**: obývák, jídelna, kuchyně a předsíň jsou o dva schody (2 × 17 cm) níž než zbytek bytu; žlutý pás kolem balkonu v půdorysu je mezistupeň. Zadání je v `levels` v `openings.json` (oblast zaplavená od semínka po stěny a dělicí čáru, schod jako mnohoúhelník), `npm run trace` z něj vyrobí `src/data/levels.json` a masky podlah pro každou úroveň. Výška podlahy (`src/levels.ts`) posouvá hráče, nábytek, dveře, okna a lišty; stěny začínají u nejnižší podlahy.
 * **Kolize**: hráč je kruh o poloměru 22 cm, úsečky stěn / oken / nábytku jsou v prostorové mřížce, dveře se přidávají dynamicky podle aktuálního natočení.
 * **Podlahy**: každá místnost má v `openings.json` materiál (`wood`, `carpet`, `tile`, `stone`, `corridor`). Generátor z mapy místností vyrobí nepřekrývající se masky a každý materiál je jedna rovina s `alphaMap`. Dělicí čára `room_dividers` určuje hranici dlažby a parket mezi kuchyní a jídelnou.
 * **Výhled**: `src/world/skyline.ts` – denní fotografie na výseči válce (140°) se středem za balkonem, noční zvlášť (110°), dole prodloužená a po stranách prolnutá s procedurálním pozadím, jehož obloha je navzorkovaná z okrajů fotky. Polohu horizontu a záběr lze doladit konstantami na začátku souboru.

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import data from '../data/openings.json';
 import { METERS_PER_PX, PLAN_H, PLAN_ORIGIN, PLAN_W, WALL_HEIGHT } from '../config';
+import { LEVELS } from '../levels';
 import { loadPbr } from './materials';
 
 export interface FloorSet {
@@ -22,8 +22,9 @@ const FLOOR_MATERIALS: Record<string, { dir: string; size: number; roughness?: n
 
 /**
  * Podlahy jsou roviny o velikosti celého půdorysu; tvar každého materiálu vyřezává
- * alphaMap z public/floors/<materiál>.png (generuje tools/trace_walls.py z mapy místností).
- * Masky se nepřekrývají, pod nimi leží neutrální podklad (public/floor_mask.png),
+ * alphaMap z public/floors/<materiál>[_<úroveň>].png (generuje tools/trace_walls.py z mapy místností
+ * a výškových úrovní). Každá výšková úroveň má vlastní sadu rovin ve své výšce (src/data/levels.json).
+ * Masky se nepřekrývají, pod nimi leží neutrální podklad (public/floors/base*.png),
  * který zakryje případné škvíry na hranicích.
  */
 export function buildFloor(loader: THREE.TextureLoader, maxAniso: number): FloorSet {
@@ -52,32 +53,45 @@ export function buildFloor(loader: THREE.TextureLoader, maxAniso: number): Floor
     return m;
   };
 
-  // podklad
-  plane(new THREE.MeshStandardMaterial({ color: 0x8a7a66, roughness: 0.8, alphaMap: mask, alphaTest: 0.5 }), -0.004);
-
-  const materialPlanes: THREE.Mesh[] = [];
-  const used = new Set(data.rooms.map((r) => r.floor));
-  for (const key of used) {
+  const pbrCache = new Map<string, ReturnType<typeof loadPbr>>();
+  const pbrFor = (key: string) => {
     const def = FLOOR_MATERIALS[key];
-    if (!def) continue;
-    const maps = def.roughness === undefined ? undefined : (['map', 'normalMap'] as const);
-    const pbr = loadPbr(loader, def.dir, new THREE.Vector2(w / def.size, h / def.size), maxAniso, maps && [...maps]);
-    const mat = new THREE.MeshStandardMaterial({
-      ...pbr,
-      color: def.color ?? 0xffffff,
-      roughness: def.roughness ?? 1,
-      envMapIntensity: def.env ?? 1,
-      alphaMap: loadMask(`/floors/${key}.png`),
-      alphaTest: 0.5,
-    });
-    materialPlanes.push(plane(mat, 0));
-  }
+    let pbr = pbrCache.get(key);
+    if (!pbr) {
+      const maps = def.roughness === undefined ? undefined : (['map', 'normalMap'] as const);
+      pbr = loadPbr(loader, def.dir, new THREE.Vector2(w / def.size, h / def.size), maxAniso, maps && [...maps]);
+      pbrCache.set(key, pbr);
+    }
+    return pbr;
+  };
 
   const planTex = loader.load('/pudorys.jpg');
   planTex.colorSpace = THREE.SRGBColorSpace;
   planTex.anisotropy = maxAniso;
-  const planFloor = plane(new THREE.MeshStandardMaterial({ map: planTex, alphaMap: mask, alphaTest: 0.5, roughness: 0.75 }), 0.001);
-  planFloor.visible = false;
+
+  const materialPlanes: THREE.Mesh[] = [];
+  const planPlanes: THREE.Mesh[] = [];
+  for (const level of LEVELS) {
+    const baseMask = loadMask(level.base);
+    // podklad
+    plane(new THREE.MeshStandardMaterial({ color: 0x8a7a66, roughness: 0.8, alphaMap: baseMask, alphaTest: 0.5 }), level.y - 0.004);
+    for (const [key, url] of Object.entries(level.floors)) {
+      const def = FLOOR_MATERIALS[key];
+      if (!def) continue;
+      const mat = new THREE.MeshStandardMaterial({
+        ...pbrFor(key),
+        color: def.color ?? 0xffffff,
+        roughness: def.roughness ?? 1,
+        envMapIntensity: def.env ?? 1,
+        alphaMap: loadMask(url),
+        alphaTest: 0.5,
+      });
+      materialPlanes.push(plane(mat, level.y));
+    }
+    const planFloor = plane(new THREE.MeshStandardMaterial({ map: planTex, alphaMap: baseMask, alphaTest: 0.5, roughness: 0.75 }), level.y + 0.001);
+    planFloor.visible = false;
+    planPlanes.push(planFloor);
+  }
 
   const ceilMat = new THREE.MeshStandardMaterial({
     color: 0xf6f2ea,
@@ -96,9 +110,10 @@ export function buildFloor(loader: THREE.TextureLoader, maxAniso: number): Floor
     group,
     ceiling,
     togglePlan() {
-      planFloor.visible = !planFloor.visible;
-      for (const m of materialPlanes) m.visible = !planFloor.visible;
-      return planFloor.visible;
+      const plan = !planPlanes[0].visible;
+      for (const m of planPlanes) m.visible = plan;
+      for (const m of materialPlanes) m.visible = !plan;
+      return plan;
     },
   };
 }

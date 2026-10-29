@@ -4,6 +4,7 @@ import wallsData from '../data/walls.json';
 import { WALL_HEIGHT } from '../config';
 import { toWorld, yawFromDir, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
+import { floorHeight, MIN_FLOOR_Y } from '../levels';
 import { loadPbr } from './materials';
 
 interface WallPolygon {
@@ -15,7 +16,7 @@ const BASEBOARD_H = 0.09;
 const BASEBOARD_T = 0.014;
 const BASEBOARD_MIN_LEN = 0.3; // kratší hrany (ostění dveří, čela příček) lištu nedostanou
 
-/** Stěny = polygony vytažené z půdorysu (tools/trace_walls.py), vysunuté do výšky stropu. */
+/** Stěny = polygony vytažené z půdorysu (tools/trace_walls.py), vysunuté od nejnižší podlahy do výšky stropu. */
 export function buildWalls(collision: CollisionWorld, loader: THREE.TextureLoader, maxAniso: number): THREE.Group {
   const geos: THREE.BufferGeometry[] = [];
   const boards: THREE.BufferGeometry[] = [];
@@ -29,8 +30,9 @@ export function buildWalls(collision: CollisionWorld, loader: THREE.TextureLoade
       shape.holes.push(new THREE.Path(hole.map((v) => new THREE.Vector2(v.x, -v.y))));
       collision.addPolygon(hole);
     }
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: WALL_HEIGHT, bevelEnabled: false, curveSegments: 1 });
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: WALL_HEIGHT - MIN_FLOOR_Y, bevelEnabled: false, curveSegments: 1 });
     geo.rotateX(-Math.PI / 2);
+    geo.translate(0, MIN_FLOOR_Y, 0);
     geos.push(geo);
 
     const inSolid = (p: THREE.Vector2) => pointInRing(p, outer) && !holes.some((h) => pointInRing(p, h));
@@ -62,7 +64,7 @@ export function buildWalls(collision: CollisionWorld, loader: THREE.TextureLoade
   return group;
 }
 
-/** Soklové lišty podél hran jednoho obrysu, vždy na straně odvrácené od zdiva. */
+/** Soklové lišty podél hran jednoho obrysu, vždy na straně odvrácené od zdiva a ve výšce podlahy před ní. */
 function baseboards(ring: THREE.Vector2[], inSolid: (p: THREE.Vector2) => boolean): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   for (let i = 0; i < ring.length; i++) {
@@ -74,9 +76,10 @@ function baseboards(ring: THREE.Vector2[], inSolid: (p: THREE.Vector2) => boolea
     const mid = a.clone().add(b).multiplyScalar(0.5);
     let n = new THREE.Vector2(-dir.y, dir.x);
     if (inSolid(mid.clone().addScaledVector(n, 0.03))) n = n.negate();
+    const y0 = floorHeight(mid.x + n.x * 0.15, mid.y + n.y * 0.15);
     const geo = new THREE.BoxGeometry(len, BASEBOARD_H, BASEBOARD_T);
     const m = new THREE.Matrix4().compose(
-      new THREE.Vector3(mid.x + n.x * BASEBOARD_T * 0.5, BASEBOARD_H / 2, mid.y + n.y * BASEBOARD_T * 0.5),
+      new THREE.Vector3(mid.x + n.x * BASEBOARD_T * 0.5, y0 + BASEBOARD_H / 2, mid.y + n.y * BASEBOARD_T * 0.5),
       new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawFromDir(dir.x, dir.y)),
       new THREE.Vector3(1, 1, 1),
     );

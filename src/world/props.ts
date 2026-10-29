@@ -65,6 +65,9 @@ export class PropFactory {
         g.add(box(w, h, d, this.paint(def.color ?? '#c58a4a', 0.55)));
         g.add(box(w + 0.02, 0.03, d + 0.02, this.paint(def.color ?? '#c58a4a', 0.4), 0, h, 0));
         break;
+      case 'wardrobe':
+        this.wardrobe(g, w, d, h, def.color ?? '#d6b46a');
+        break;
       case 'stool':
         this.stool(g, h, def.color ?? '#d9822b');
         break;
@@ -325,6 +328,46 @@ export class PropFactory {
     }
   }
 
+  // --- úložné prostory ---------------------------------------------------------
+
+  /** Vestavěná skříň až ke stropu (Daphnin pokoj): javorový rám, dvoje dveře s mřížkovou výplní, nadpraží. */
+  private wardrobe(g: THREE.Group, w: number, d: number, h: number, color: string) {
+    const maple = this.paint(color, 0.5);
+    const lattice = this.mat(`lattice:${color}`, () => {
+      const tex = new THREE.CanvasTexture(latticePattern(color));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = this.aniso;
+      return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
+    });
+    const knob = this.brass();
+    const f = 0.06; // šířka rámu
+    const doorH = 2.1;
+    const z = d / 2;
+    g.add(box(w, h, d - 0.04, this.paint('#3a2c22', 0.9), 0, 0, -0.02)); // korpus (tmavé nitro)
+    g.add(box(f, h, 0.04, maple, -w / 2 + f / 2, 0, z - 0.02));
+    g.add(box(f, h, 0.04, maple, w / 2 - f / 2, 0, z - 0.02));
+    g.add(box(w, h - doorH, 0.04, maple, 0, doorH, z - 0.02));
+    g.add(box(w, 0.08, 0.04, maple, 0, 0, z - 0.02)); // sokl
+    const dw = (w - 2 * f) / 2;
+    const rail = 0.09;
+    for (const s of [-1, 1]) {
+      const x = (s * dw) / 2;
+      const y0 = 0.08;
+      const dh = doorH - y0;
+      // rám dveří, spodní plná výplň a mřížka v horních dvou třetinách
+      g.add(box(dw - 0.006, dh, 0.025, maple, x, y0, z - 0.03));
+      const lh = dh * 0.62;
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(dw - 2 * rail, lh), lattice);
+      panel.position.set(x, doorH - rail - lh / 2, z - 0.004);
+      g.add(panel);
+      g.add(box(dw - 2 * rail, 0.012, 0.008, maple, x, doorH - rail - lh - 0.006, z - 0.004));
+      g.add(box(dw - 2 * rail, dh - lh - 3 * rail, 0.01, this.paint(color, 0.42), x, y0 + rail, z - 0.008));
+      const k = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 12), knob);
+      k.position.set(x - s * (dw / 2 - 0.07), 1.0, z + 0.015);
+      g.add(k);
+    }
+  }
+
   private stool(g: THREE.Group, h: number, color: string) {
     const c = this.chrome();
     const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.17, 0.07, 32), this.fabric('Fabric061', color, 2));
@@ -484,6 +527,28 @@ function stripes(): HTMLCanvasElement {
   g.globalAlpha = 0.12;
   g.fillStyle = '#000';
   for (let y = 0; y < 256; y += 3) g.fillRect(0, y, 256, 1);
+  return c;
+}
+
+/** Dřevěná mřížka ve dveřích skříně: čtvercové otvory s tmavým nitrem za nimi. */
+function latticePattern(color: string): HTMLCanvasElement {
+  const cols = 9;
+  const rows = 22;
+  const cell = 32;
+  const c = document.createElement('canvas');
+  c.width = cols * cell;
+  c.height = rows * cell;
+  const g = c.getContext('2d')!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, c.width, c.height);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      g.fillStyle = '#2a1d14';
+      g.fillRect(x * cell + 8, y * cell + 8, cell - 16, cell - 16);
+      g.fillStyle = 'rgba(0,0,0,0.25)'; // stín horní hrany otvoru
+      g.fillRect(x * cell + 8, y * cell + 8, cell - 16, 3);
+    }
+  }
   return c;
 }
 
