@@ -4,7 +4,8 @@
  *
  *   1) python3 tools/dae2glb/extract.py        # rozbalí stazene/ do tools/out/dl/
  *   2) npm run dev                             # Vite servíruje převodník i rozbalené soubory
- *   3) npm run models                          # převede vše z OUT do public/models/custom/
+ *   3) npm run models                          # převede vše z OUT do assets/models/custom/
+ *   4) npm run assets                          # optimalizace pro web -> public/models/custom/
  *
  * Převod běží v headless Chrome (three.js ColladaLoader -> GLTFExporter): odstraní čáry hran
  * ze SketchUpu, volitelně ořízne scénu na zadaný prostor, zmenší textury a uloží náhledy
@@ -16,12 +17,12 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DL = path.join(ROOT, 'tools', 'out', 'dl');
-const OUT_DIR = path.join(ROOT, 'public', 'models', 'custom');
+const OUT_DIR = path.join(ROOT, 'assets', 'models', 'custom');
 const THUMBS = path.join(ROOT, 'tools', 'out', 'thumbs');
 const BASE = process.env.DEV_URL || 'http://localhost:5173';
 const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 
-// složka v tools/out/dl  ->  výsledný soubor v public/models/custom
+// složka v tools/out/dl  ->  výsledný soubor v assets/models/custom
 const OUT = {
   frasier_s_sofa_prop: 'sofa',
   eames_lounge_chair_black_frasier: 'eames',

@@ -10,7 +10,7 @@ Níže jsou věci, které vyžadují **účet, platbu nebo tvé rozhodnutí o li
 > Bezplatný účet má limit **3 stažení denně** (reklamními videi až 100).
 
 **Postup pro další modely:** *Download → Collada File* → ZIP (nerozbalovat) do `stazene/` →
-`python3 tools/dae2glb/extract.py` → `npm run dev` → `npm run models` (u nového modelu je potřeba doplnit
+`python3 tools/dae2glb/extract.py` → `npm run dev` → `npm run models` → `npm run assets` (u nového modelu je potřeba doplnit
 řádek do `OUT` v `tools/dae2glb/convert.cjs` a položku do `src/data/furniture.json`, nebo dej vědět).
 
 Autor **R. Sebastian** vymodeloval desítky předmětů z bytu (odkazy ověřené přes API 3D Warehouse):

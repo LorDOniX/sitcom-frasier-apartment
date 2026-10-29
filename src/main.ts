@@ -96,6 +96,9 @@ const startBtn = $<HTMLButtonElement>('start');
 const hint = $('hint');
 const roomLabel = $('room');
 
+manager.onProgress = (_url, loaded, total) => {
+  $('loading').textContent = `Načítám… ${Math.round((loaded / total) * 100)} %`;
+};
 manager.onLoad = () => {
   $('loading').hidden = true;
   startBtn.hidden = false;

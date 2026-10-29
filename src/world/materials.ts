@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-/** Sada PBR map z public/textures/<dir>/ (diff.jpg, nor.jpg, rough.jpg). */
+/** Sada PBR map z public/textures/<dir>/ (diff, nor, rough – WebP vyrobené z assets/textures přes npm run assets). */
 export interface PbrMaps {
   map: THREE.Texture;
   normalMap: THREE.Texture;
@@ -20,7 +20,7 @@ export function loadPbr(
 ): Partial<PbrMaps> {
   const file = { map: 'diff', normalMap: 'nor', roughnessMap: 'rough' } as const;
   const load = (name: string, srgb: boolean) => {
-    const t = loader.load(`/textures/${dir}/${name}.jpg`);
+    const t = loader.load(`/textures/${dir}/${name}.webp`);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.copy(repeat);
     t.anisotropy = aniso;

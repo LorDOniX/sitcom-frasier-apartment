@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import data from '../data/furniture.json';
 import { WALL_HEIGHT } from '../config';
 import { toWorld, type Px } from '../plan';
@@ -10,7 +11,8 @@ import { nearestWallFace } from './walls';
 /**
  * Položka nábytku (src/data/furniture.json).
  * - `kind`  = procedurální model (viz props.ts), nebo
- * - `model` = glTF ve public/models/<model>/<model>.gltf, případně přímá cesta k vlastnímu .glb/.gltf.
+ * - `model` = název modelu z Poly Haven (public/models/<model>.glb), nebo přímá cesta k .glb/.gltf.
+ *   Modely v public/ jsou optimalizované z assets/ (npm run assets): meshopt + WebP.
  * Modely jsou ve skutečném měřítku; `scale` je zvětší/zmenší, `fit: "box"` je natáhne
  * přesně na size × h. Kolize je obdélník size, pokud není `collide: false`.
  */
@@ -59,14 +61,14 @@ export function buildFurniture(
   aniso: number,
 ): FurnitureResult {
   const props = new PropFactory(loader, aniso);
-  const gltf = new GLTFLoader(loader.manager);
+  const gltf = new GLTFLoader(loader.manager).setMeshoptDecoder(MeshoptDecoder);
   const models = new Map<string, Promise<THREE.Object3D>>();
   const nightLights: THREE.PointLight[] = [];
 
   const loadModel = (name: string) => {
     let p = models.get(name);
     if (!p) {
-      const url = /\.(glb|gltf)$/.test(name) ? name : `/models/${name}/${name}.gltf`;
+      const url = /\.(glb|gltf)$/.test(name) ? name : `/models/${name}.glb`;
       p = gltf.loadAsync(url).then((g) => {
         g.scene.traverse((o) => {
           const mesh = o as THREE.Mesh;

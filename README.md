@@ -9,7 +9,11 @@ Geometrie bytu je vytažená přímo z půdorysu `pudorys.jpg` (Iñaki Aliste Li
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # produkční build do dist/
+npm run assets   # po změně čehokoli v assets/: optimalizace modelů, textur a fotek do public/
 ```
+
+Zdrojové podklady jsou v `assets/` (do buildu se nedostanou), aplikace načítá jen optimalizované
+verze z `public/`. Úvodní načtení je ~11,5 MB (noční fotka 1,1 MB se stáhne až při přepnutí na noc).
 
 ## Ovládání
 
@@ -35,9 +39,8 @@ tools/plan_edits.json┘                    public/rooms.png         (mapa míst
 src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha – ručně zadané v px půdorysu)
 src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, světla)
 public/models/          (glTF modely CC0 – viz public/models/README.md)
-public/textures/        (PBR textury CC0 – viz public/textures/README.md)
-public/skybox_day.jpg, skybox_night.jpg (fotografie výhledu, CC BY-SA)
-public/models/custom/   (modely z 3D Warehouse, převedené přes tools/dae2glb)
+assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z 3D Warehouse, fotky)
+  ──► npm run assets ──► public/textures/*.webp, public/models/*.glb, public/models/custom/*.glb, public/skybox_*.webp
 ```
 
 * **Stěny**: prahování černé barvy → morfologické otevření → ruční úpravy (`tools/plan_edits.json`: smazat text/nábytek, dokreslit chybějící zdi) → trasování obrysu → zjednodušení a srovnání hran na násobky 45° → `ExtrudeGeometry` do výšky 2,75 m.
@@ -63,8 +66,19 @@ Nástroj potřebuje jen Python 3 + Pillow.
 ```bash
 python3 tools/dae2glb/extract.py   # stazene/*.zip -> tools/out/dl/
 npm run dev                        # v druhém terminálu
-npm run models                     # -> public/models/custom/*.glb (+ náhledy v tools/out/thumbs/)
+npm run models                     # -> assets/models/custom/*.glb (+ náhledy v tools/out/thumbs/)
+npm run assets                     # -> optimalizované public/models/custom/*.glb
 ```
+
+## Optimalizace pro web (`tools/optimize_assets.mjs`)
+
+* **Modely**: `gltf-transform optimize` – sloučení meshů a materiálů (draw calls modelů 1 308 → 113),
+  komprese geometrie **meshopt** (dekodér v aplikaci: `GLTFLoader.setMeshoptDecoder`), textury **WebP** max. 1024 px
+  (krb 512 px), opatrné zjednodušení geometrie (chyba 0,05 % rozměru). 34 MB → 7,2 MB.
+* **PBR textury**: WebP max. 1024 px (normal mapy kvalita 82, ostatní 78). 6,6 MB → 3,8 MB.
+* **Fotky výhledu**: WebP. 3,7 MB → 2,2 MB; noční se načítá líně.
+* **JavaScript**: three.js v samostatném chunku (`vite.config.ts`) – 174 kB gzip, aplikace 21 kB gzip.
+* Skript zpracuje jen změněné soubory; `npm run assets -- --force` vše znovu.
 
 ## Struktura
 

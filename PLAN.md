@@ -67,9 +67,8 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 * Plynulé otevírání dveří tam, kam hráč stojí (dveře se otevřou „od hráče“).
 
 ### Fáze 5 – optimalizace a nasazení
-* Komprese GLB (`gltf-transform optimize`, Draco/Meshopt, KTX2), lazy loading místností.
-* Mobilní ovládání (virtuální joystick, dotykové rozhlížení), nastavení kvality.
-* Statický hosting (GitHub Pages / Netlify) – až po vyřešení licencí podkladů.
+* ✅ **Zmenšení pro web (29. 10. 2026)**: zdroje přesunuté do `assets/`, `npm run assets` vyrábí do `public/` GLB s meshopt + WebP a WebP textury/fotky. Podklady 44 MB → 13 MB, úvodní přenos 11,5 MB, draw calls modelů 1 308 → 113, noční fotka líně, three.js v samostatném chunku, ukazatel průběhu načítání.
+* Zbývá: KTX2 textury (menší paměť GPU, potřebuje Basis transcoder), lazy loading místností / LOD, mobilní ovládání, nastavení kvality (stíny, rozlišení), statický hosting – až po vyřešení licencí podkladů (modely z 3D Warehouse a půdorys šířit nelze).
 
 ### Volitelně – „skutečný“ vzhled ze seriálu
 * Natrénovat Gaussian splatting / NeRF ze Sitcoms3D dat pro obývák a vložit ho do three.js (např. knihovna pro 3D Gaussian splatting) – vizuálně nejvěrnější, ale jen pro osobní použití.

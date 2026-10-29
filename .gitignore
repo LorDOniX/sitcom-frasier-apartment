@@ -5,4 +5,5 @@ __pycache__
 
 # stažené podklady a modely z 3D Warehouse (licence nedovoluje šířit modely samostatně)
 stazene/
+assets/models/custom/
 public/models/custom/

@@ -26,8 +26,8 @@ interface PhotoDef {
 // Noční fotka je užší záběr se Space Needle u pravého okraje; den a noc nejsou vidět
 // současně, takže je zvětšená tak, aby sama vyplnila celý výhled z balkonu.
 const PHOTOS: Record<'day' | 'night', PhotoDef> = {
-  day: { url: '/skybox_day.jpg', arc: 140, center: 0, horizon: 0.6, extend: 0.6 },
-  night: { url: '/skybox_night.jpg', arc: 110, center: -15, horizon: 0.572, extend: 0.08 },
+  day: { url: '/skybox_day.webp', arc: 140, center: 0, horizon: 0.6, extend: 0.6 },
+  night: { url: '/skybox_night.webp', arc: 110, center: -15, horizon: 0.572, extend: 0.08 },
 };
 
 const PHOTO_RADIUS = 85; // m
@@ -67,17 +67,24 @@ export class Skyline {
     ground.position.y = GROUND_Y;
     this.group.add(ground);
 
-    const loader = new THREE.ImageLoader(manager);
-    for (const mode of ['day', 'night'] as Mode[]) {
-      loader.load(PHOTOS[mode].url, (img) => {
-        this.built[mode] = this.build(img, PHOTOS[mode]);
-        this.apply();
-      });
-    }
+    // denní fotka se čeká v úvodním načítání, noční se stáhne až při prvním přepnutí na noc
+    this.load('day', manager);
+  }
+
+  private loading = new Set<Mode>();
+
+  private load(mode: Mode, manager?: THREE.LoadingManager) {
+    if (this.loading.has(mode)) return;
+    this.loading.add(mode);
+    new THREE.ImageLoader(manager).load(PHOTOS[mode].url, (img) => {
+      this.built[mode] = this.build(img, PHOTOS[mode]);
+      this.apply();
+    });
   }
 
   setNight(night: boolean) {
     this.mode = night ? 'night' : 'day';
+    this.load(this.mode);
     this.apply();
   }
 
