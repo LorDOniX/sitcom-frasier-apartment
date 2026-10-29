@@ -1,0 +1,28 @@
+{
+  "_comment": "Zástupný nábytek (fáze 1). pos = střed v px půdorysu, size = [šířka, hloubka] v m, rot = natočení ve stupních (po směru hodinových ručiček v půdorysu), h = výška v m.",
+  "items": [
+    { "name": "Pohovka", "kind": "sofa", "pos": [593, 757], "size": [2.6, 0.95], "rot": -30, "h": 0.85, "color": "#8c7b3c" },
+    { "name": "Konzolový stolek", "kind": "box", "pos": [571, 738], "size": [1.9, 0.4], "rot": -30, "h": 0.75, "color": "#4a4a4a" },
+    { "name": "Dvojsedák", "kind": "sofa", "pos": [630, 800], "size": [1.5, 0.75], "rot": -30, "h": 0.8, "color": "#c98a2e" },
+    { "name": "Martinovo křeslo", "kind": "armchair", "pos": [716, 775], "size": [0.9, 0.95], "rot": 0, "h": 1.0, "color": "#7a7a3a" },
+    { "name": "Křeslo Eames", "kind": "armchair", "pos": [838, 812], "size": [0.85, 0.85], "rot": 30, "h": 0.85, "color": "#2b2622" },
+    { "name": "Kožené křeslo", "kind": "armchair", "pos": [678, 642], "size": [0.85, 0.85], "rot": -45, "h": 0.85, "color": "#262626" },
+    { "name": "Podnožka", "kind": "box", "pos": [700, 664], "size": [0.5, 0.5], "rot": -45, "h": 0.4, "color": "#262626" },
+    { "name": "Podstavec se sochou", "kind": "cylinder", "pos": [718, 705], "size": [0.9, 0.9], "rot": 0, "h": 0.9, "color": "#b9732e" },
+    { "name": "Jídelní stůl", "kind": "table", "pos": [810, 740], "size": [1.1, 1.1], "rot": 0, "h": 0.75, "color": "#9fc4cc" },
+    { "name": "Židle", "kind": "chair", "pos": [778, 740], "size": [0.45, 0.45], "rot": 90, "h": 0.9, "color": "#3b2d24" },
+    { "name": "Židle", "kind": "chair", "pos": [842, 740], "size": [0.45, 0.45], "rot": -90, "h": 0.9, "color": "#3b2d24" },
+    { "name": "Klavír", "kind": "piano", "pos": [866, 594], "size": [1.5, 1.9], "rot": -90, "h": 1.0, "color": "#111111" },
+    { "name": "Lavička ke klavíru", "kind": "box", "pos": [815, 596], "size": [0.8, 0.38], "rot": 90, "h": 0.5, "color": "#111111" },
+    { "name": "Kuchyňský ostrůvek", "kind": "counter", "pos": [1045, 800], "size": [1.45, 1.45], "rot": 45, "h": 0.92, "color": "#b5533c" },
+    { "name": "Kuchyňská linka", "kind": "counter", "pos": [940, 692], "size": [3.0, 0.62], "rot": -42, "h": 0.92, "color": "#c0634a" },
+    { "name": "Kuchyňská linka", "kind": "counter", "pos": [1085, 718], "size": [4.6, 0.62], "rot": 40, "h": 0.92, "color": "#c0634a" },
+    { "name": "Frasierova postel", "kind": "bed", "pos": [390, 440], "size": [1.75, 2.05], "rot": 45, "h": 0.6, "color": "#2f6db5" },
+    { "name": "Martinova postel", "kind": "bed", "pos": [311, 559], "size": [1.5, 1.9], "rot": 45, "h": 0.6, "color": "#6fb7d6" },
+    { "name": "Daphnina postel", "kind": "bed", "pos": [987, 461], "size": [1.4, 2.1], "rot": -90, "h": 0.6, "color": "#2c5aa0" }
+  ],
+  "lights": [
+    [470, 800], [610, 790], [790, 790], [800, 690], [880, 570], [1050, 780],
+    [540, 570], [390, 440], [300, 530], [290, 230], [990, 470]
+  ]
+}

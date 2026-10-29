@@ -1,0 +1,56 @@
+{
+  "_comment": "Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
+  "doors": [
+    { "id": "front", "label": "Vstupní dveře", "hinge": [403, 769], "tip": [403, 814], "open": [440, 770], "t": 7 },
+    { "id": "powder", "label": "Toaleta pro hosty", "hinge": [411, 744], "tip": [446, 744], "open": [413, 712], "t": 6 },
+    { "id": "master", "label": "Frasierova ložnice", "hinge": [478, 511], "tip": [453, 537], "open": [456, 492], "t": 6 },
+    { "id": "storage", "label": "Komora", "hinge": [526, 550], "tip": [547, 571], "open": [505, 572], "t": 6 },
+    { "id": "martin", "label": "Martinova ložnice", "hinge": [391, 602], "tip": [366, 625], "open": [368, 580], "t": 6 },
+    { "id": "martin-bath", "label": "Martinova koupelna", "hinge": [187, 411], "tip": [208, 392], "open": [167, 389], "t": 6 },
+    { "id": "master-bath", "label": "Frasierova koupelna", "hinge": [325, 372], "tip": [344, 351], "open": [306, 352], "t": 6 },
+    { "id": "daphne", "label": "Daphnin pokoj", "hinge": [975, 525], "tip": [999, 549], "open": [996, 505], "t": 6 },
+    { "id": "daphne-bath", "label": "Daphnina koupelna", "hinge": [1001, 372], "tip": [1029, 372], "open": [1001, 347], "t": 6 },
+    { "id": "laundry", "label": "Prádelna", "hinge": [1007, 611], "tip": [1030, 588], "open": [1027, 628], "t": 6 }
+  ],
+  "sliders": [
+    { "id": "balcony-left", "label": "Balkon", "a": [668, 583], "b": [714, 626], "t": 4 },
+    { "id": "balcony-right", "label": "Balkon", "a": [767, 583], "b": [722, 626], "t": 4 }
+  ],
+  "windows": [
+    { "a": [617, 537], "b": [668, 583], "sill": 0.0, "head": 2.4, "t": 4 },
+    { "a": [767, 583], "b": [817, 534], "sill": 0.0, "head": 2.4, "t": 4 },
+    { "a": [537, 907], "b": [640, 907], "sill": 0.75, "head": 2.4, "t": 9 },
+    { "a": [667, 907], "b": [768, 907], "sill": 0.75, "head": 2.4, "t": 9 },
+    { "a": [795, 907], "b": [898, 907], "sill": 0.75, "head": 2.4, "t": 9 },
+    { "a": [430, 340], "b": [482, 393], "sill": 0.5, "head": 2.4, "t": 8 },
+    { "a": [937, 410], "b": [976, 375], "sill": 0.8, "head": 2.3, "t": 8 },
+    { "a": [1083, 867], "b": [1108, 840], "sill": 1.0, "head": 2.2, "t": 8 },
+    { "a": [160, 524], "b": [127, 492], "sill": 0.4, "head": 2.4, "t": 4 },
+    { "a": [127, 492], "b": [182, 437], "sill": 0.4, "head": 2.4, "t": 4 },
+    { "a": [182, 437], "b": [224, 478], "sill": 0.4, "head": 2.4, "t": 4 },
+    { "a": [227, 229], "b": [297, 162], "sill": 0.0, "head": 2.0, "t": 3, "kind": "glass" },
+    { "a": [227, 229], "b": [285, 285], "sill": 0.0, "head": 2.0, "t": 3, "kind": "glass" }
+  ],
+  "railings": [
+    { "a": [577, 478], "b": [857, 478], "h": 1.05, "t": 4 }
+  ],
+  "rooms": [
+    { "name": "Obývací pokoj", "seed": [640, 800] },
+    { "name": "Kuchyně", "seed": [1040, 760] },
+    { "name": "Balkon", "seed": [718, 520] },
+    { "name": "Jídelna a klavír", "seed": [840, 640] },
+    { "name": "Předsíň", "seed": [440, 800] },
+    { "name": "Chodba domu (19. patro)", "seed": [372, 800] },
+    { "name": "Chodba k ložnicím", "seed": [565, 535] },
+    { "name": "Frasierova ložnice", "seed": [400, 480] },
+    { "name": "Frasierova koupelna", "seed": [300, 230] },
+    { "name": "Martinova ložnice", "seed": [290, 560] },
+    { "name": "Martinova koupelna", "seed": [165, 350] },
+    { "name": "Komora", "seed": [495, 640] },
+    { "name": "Toaleta pro hosty", "seed": [430, 718] },
+    { "name": "Chodba k Daphne", "seed": [960, 600] },
+    { "name": "Daphnin pokoj", "seed": [1000, 450] },
+    { "name": "Daphnina koupelna", "seed": [1040, 320] },
+    { "name": "Prádelna", "seed": [1085, 640] }
+  ]
+}

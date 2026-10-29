@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Elliott Bay Towers, apt. 1901</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="crosshair"></div>
+    <div id="hint"></div>
+    <div id="room"></div>
+    <canvas id="minimap" width="256" height="203"></canvas>
+
+    <div id="overlay">
+      <div class="panel">
+        <h1>Elliott Bay Towers <span>apt. 1901</span></h1>
+        <p class="sub">Procházka bytem Frasiera Cranea</p>
+        <p id="loading">Načítám…</p>
+        <button id="start" hidden>Klikni pro vstup</button>
+        <table>
+          <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>chůze</td></tr>
+          <tr><td>myš</td><td>rozhlížení</td></tr>
+          <tr><td><kbd>Shift</kbd></td><td>rychlejší chůze</td></tr>
+          <tr><td><kbd>E</kbd></td><td>otevřít / zavřít dveře</td></tr>
+          <tr><td><kbd>M</kbd></td><td>minimapa</td></tr>
+          <tr><td><kbd>P</kbd></td><td>podlaha: půdorys / parkety</td></tr>
+          <tr><td><kbd>N</kbd></td><td>den / noc</td></tr>
+          <tr><td><kbd>C</kbd></td><td>kolize zap / vyp</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>pauza</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
