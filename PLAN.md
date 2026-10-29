@@ -6,7 +6,7 @@ Hotový model bytu ve formátu pro web (glTF/GLB) s texturami **neexistuje**. By
 
 | Zdroj | Co obsahuje | Použitelnost pro three.js | Licence / cena | Doporučení |
 | --- | --- | --- | --- | --- |
-| **Fotografie výhledu** (`skybox.jpg`, dodaná) | panorama Seattlu z Kerry Parku, 3200 × 1243 | ✅ **používá se** jako výhled z balkonu | **původ a licence neznámé** | před zveřejněním ověřit autora / licenci, případně nahradit fotkou CC0 / CC-BY |
+| **Fotografie výhledu** (Wikimedia Commons) | Kerry Park den (13516 × 2221) a večer (5096 × 3395) | ✅ **používá se** | CC BY-SA 4.0 / 2.0 | uvádět autory (úvodní panel, README); původní `skybox.jpg` neznámého původu se už nepoužívá |
 | **Půdorys – I. A. Lizarralde** (`pudorys.jpg`) | rozvržení všech místností a nábytku, 1 : 100 | ✅ **už se používá** jako zdroj stěn, dveří, oken a jako textura podlahy | autorská kresba, prodává se jako tisk (pixels.com) | pro veřejné nasazení nahradit vlastní překreslenou podlahou nebo se zeptat autora |
 | **CGTrader – Sit Com Set** | 6 částí stavby + 60+ kusů nábytku, FBX + STL (~41 MB) | ⚠️ jde to: Blender → úprava měřítka → materiály → GLB. Model je pro 3D tisk, **bez textur a UV** | placené (~6 USD), licence z CGTrader | **koupit** – nejrychlejší zdroj tvarů charakteristického nábytku (pohovka, krb, klavír, kuchyň) |
 | **Cults3D – Sit Com Set** | stejný model jen v STL | ⚠️ horší než CGTrader (STL = jen trojúhelníky, žádné skupiny) | placené (~6 USD) | nekupovat, vzít CGTrader variantu |
@@ -55,7 +55,9 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 * **Obrazy**: procedurální abstraktní malby a zátiší s vázou, automaticky zavěšené na nejbližší stěnu; lze nahradit vlastním obrázkem (`image`).
 * Systém nábytku: `furniture.json` – `kind` (procedurální) nebo `model` (glTF/GLB, i vlastní), `scale` / `fit: "box"` / `modelRot`, kolizní obdélník; ověřeno, že všechny místnosti jsou průchozí.
 * Co zůstává na tobě (účet / platba) – viz **[STAHNOUT.md](STAHNOUT.md)**: originální Eames, lampa a obrazy z 3D Warehouse, případně CGTrader *Sit Com Set*.
-* Zatím chybí: krb, knihovny, bar s lahvemi sherry, Eddieho pelíšek, lednice, horní kuchyňské skříňky, drobnosti na policích.
+* **Doplněno z 3D Warehouse** (Collada → GLB přes `tools/dae2glb`): originální pohovka, Eames s podnožkou, jídelní souprava, barové stoličky, **krb**, lednice, podstavec, stolky, lampa Corbu, váza a 6 obrazů/plakátů ze seriálu.
+* **Výhled**: skutečné fotografie z Kerry Parku pro den i noc (CC BY-SA, Wikimedia Commons).
+* Zatím chybí: knihovny, bar s lahvemi sherry, Eddieho pelíšek, horní kuchyňské skříňky, drobnosti na policích, model vstupních dveří (převedený, nezapojený).
 
 ### Fáze 4 – interakce a atmosféra
 * Rozsvěcení světel vypínači (`E` na vypínač), stmívání.

@@ -36,7 +36,8 @@ src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha – r
 src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, světla)
 public/models/          (glTF modely CC0 – viz public/models/README.md)
 public/textures/        (PBR textury CC0 – viz public/textures/README.md)
-public/skybox.jpg       (fotografie výhledu, kopie ./skybox.jpg)
+public/skybox_day.jpg, skybox_night.jpg (fotografie výhledu, CC BY-SA)
+public/models/custom/   (modely z 3D Warehouse, převedené přes tools/dae2glb)
 ```
 
 * **Stěny**: prahování černé barvy → morfologické otevření → ruční úpravy (`tools/plan_edits.json`: smazat text/nábytek, dokreslit chybějící zdi) → trasování obrysu → zjednodušení a srovnání hran na násobky 45° → `ExtrudeGeometry` do výšky 2,75 m.
@@ -44,11 +45,26 @@ public/skybox.jpg       (fotografie výhledu, kopie ./skybox.jpg)
 * **Dveře**: v `openings.json` je pant (`hinge`), volný konec křídla (`tip`) a bod, kam se otvírají (`open`). Nadpraží se generuje automaticky.
 * **Kolize**: hráč je kruh o poloměru 22 cm, úsečky stěn / oken / nábytku jsou v prostorové mřížce, dveře se přidávají dynamicky podle aktuálního natočení.
 * **Podlahy**: každá místnost má v `openings.json` materiál (`wood`, `carpet`, `tile`, `stone`, `corridor`). Generátor z mapy místností vyrobí nepřekrývající se masky a každý materiál je jedna rovina s `alphaMap`. Dělicí čára `room_dividers` určuje hranici dlažby a parket mezi kuchyní a jídelnou.
-* **Výhled**: `src/world/skyline.ts` – fotografie na výseči válce (110°) se středem za balkonem, dole prodloužená a po stranách prolnutá s procedurálním pozadím, jehož obloha je navzorkovaná z okrajů fotky. Noční verze se počítá z fotky (obloha → noc, budovy ztmavnou, rozsvítí se okna, Space Needle svítí). Polohu horizontu a záběr lze doladit konstantami na začátku souboru.
+* **Výhled**: `src/world/skyline.ts` – denní fotografie na výseči válce (140°) se středem za balkonem, noční zvlášť (110°), dole prodloužená a po stranách prolnutá s procedurálním pozadím, jehož obloha je navzorkovaná z okrajů fotky. Polohu horizontu a záběr lze doladit konstantami na začátku souboru.
 * **Světlo**: odpolední slunce se stínovou mapou (4096², stíny vrhají stěny, strop, dveře i nábytek) – do bytu svítí jen okny; výplň dělá polokulové světlo a `RoomEnvironment` pro odlesky. V noci svítí stropní svítidla.
 * **Kontrola dat**: `npm run trace` přegeneruje data a uloží `tools/out/walls_overlay.png` – půdorys s vykreslenými stěnami (červeně), dveřmi (zeleně), okny (modře) a zábradlím. Po každé úpravě JSONů se vyplatí ho otevřít.
 
 Nástroj potřebuje jen Python 3 + Pillow.
+
+## Autoři a licence podkladů
+
+* **Fotografie výhledu** (Wikimedia Commons): den – [SounderBruce, *Seattle skyline panorama from Kerry Park, June 2022*](https://commons.wikimedia.org/wiki/File:Seattle_skyline_panorama_from_Kerry_Park,_June_2022.jpg), CC BY-SA 4.0; noc – [ragesoss, *Seattle skyline from Kerry Park, evening of 2014-10-19 no. 09*](https://commons.wikimedia.org/wiki/File:Seattle_skyline_from_Kerry_Park,_evening_of_2014-10-19_no._09.jpg), CC BY-SA 2.0. Upravené verze (`public/skybox_*.jpg`, zmenšené) podléhají stejné licenci.
+* **Modely z bytu**: 3D Warehouse, převážně R. Sebastian – licence 3D Warehouse (použití v projektu ano, samostatné šíření ne; `public/models/custom/` je v `.gitignore`).
+* **Ostatní modely a textury**: Poly Haven, ambientCG – CC0.
+* **Půdorys**: Iñaki Aliste Lizarralde.
+
+## Převod modelů z 3D Warehouse
+
+```bash
+python3 tools/dae2glb/extract.py   # stazene/*.zip -> tools/out/dl/
+npm run dev                        # v druhém terminálu
+npm run models                     # -> public/models/custom/*.glb (+ náhledy v tools/out/thumbs/)
+```
 
 ## Struktura
 

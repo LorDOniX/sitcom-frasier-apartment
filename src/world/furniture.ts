@@ -32,6 +32,8 @@ interface Item {
   seed?: number;
   sink?: boolean;
   light?: boolean;
+  /** přichytit zády k nejbližší stěně (obrazy, krb); pos = bod v místnosti u stěny, y = výška spodku */
+  wall?: boolean;
 }
 
 interface Painting {
@@ -82,7 +84,14 @@ export function buildFurniture(
 
   for (const it of data.items as unknown as Item[]) {
     const p = toWorld(it.pos);
-    const yaw = -THREE.MathUtils.degToRad(it.rot); // rot v půdorysu je po směru hodinových ručiček
+    let yaw = -THREE.MathUtils.degToRad(it.rot); // rot v půdorysu je po směru hodinových ručiček
+    if (it.wall) {
+      const face = nearestWallFace(p);
+      if (face) {
+        p.copy(face.point).addScaledVector(face.normal, it.size[1] / 2 + 0.005);
+        yaw = Math.atan2(face.normal.x, face.normal.y);
+      }
+    }
     const holder = new THREE.Group();
     holder.position.set(p.x, it.y ?? 0, p.y);
     holder.rotation.y = yaw;

@@ -68,7 +68,7 @@ sun.shadow.radius = 3;
 scene.add(sun, sun.target);
 const lamps = [...buildLights(apartment), ...furniture.nightLights];
 
-const skyline = new Skyline(manager, maxAniso);
+const skyline = new Skyline(manager, renderer);
 scene.add(skyline.group);
 
 const rooms = new Rooms(loader);

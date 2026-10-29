@@ -2,3 +2,7 @@ node_modules
 dist
 tools/out
 __pycache__
+
+# stažené podklady a modely z 3D Warehouse (licence nedovoluje šířit modely samostatně)
+stazene/
+public/models/custom/

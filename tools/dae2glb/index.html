@@ -1,0 +1,68 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(512, 384);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+window.convert = async (url, opts = {}) => {
+  const manager = new THREE.LoadingManager();
+  const failed = [];
+  manager.onError = (u) => failed.push(u);
+  let done; const allLoaded = new Promise((r) => (done = r));
+  manager.onLoad = () => done();
+  const col = await new ColladaLoader(manager).loadAsync(url);
+  await Promise.race([allLoaded, new Promise((r) => setTimeout(r, 15000))]);
+  const scene = col.scene;
+  scene.updateMatrixWorld(true);
+  // pryč s čarami hran ze SketchUpu a (volitelně) se vším mimo zadaný prostor
+  const kill = [];
+  const keep = opts.keepBox ? new THREE.Box3(new THREE.Vector3(...opts.keepBox[0]), new THREE.Vector3(...opts.keepBox[1])) : null;
+  scene.traverse(o => {
+    if (o.isLine || o.isLineSegments || o.isPoints) { kill.push(o); return; }
+    if (o.isMesh && keep) { const b = new THREE.Box3().setFromObject(o); if (!b.isEmpty() && !keep.containsBox(b)) kill.push(o); }
+    if (o.isMesh && opts.dropBoxes) {
+      const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+      if (opts.dropBoxes.some(([a, b]) => new THREE.Box3(new THREE.Vector3(...a), new THREE.Vector3(...b)).containsPoint(c))) kill.push(o);
+    }
+  });
+  for (const o of kill) o.parent.remove(o);
+  let meshes = 0, tris = 0; const mats = new Set(), texs = new Set();
+  scene.traverse(o => {
+    if (o.isMesh) {
+      meshes++;
+      const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+      for (const m of [].concat(o.material)) { mats.add(m); if (m.map && !(m.map.image && (m.map.image.width || m.map.image.naturalWidth))) { m.map = null; m.needsUpdate = true; } if (m.map) { texs.add(m.map); m.map.userData.mimeType = /\.png$/i.test(m.map.image?.src || '') ? 'image/png' : 'image/jpeg'; } }
+    }
+  });
+  const box = new THREE.Box3().setFromObject(scene);
+  const size = box.getSize(new THREE.Vector3());
+  // náhledy: zepředu (+Z), z boku (+X), shora
+  const thumbs = [];
+  const view = new THREE.Scene();
+  view.background = new THREE.Color(0xdddddd);
+  view.add(new THREE.HemisphereLight(0xffffff, 0x777777, 2.5));
+  const dl = new THREE.DirectionalLight(0xffffff, 1.5); dl.position.set(2, 3, 4); view.add(dl);
+  view.add(scene);
+  const c = box.getCenter(new THREE.Vector3());
+  const r = size.length() / 2 || 1;
+  const cam = new THREE.PerspectiveCamera(35, 512 / 384, r / 100, r * 100);
+  for (const dir of [[0, 0.25, 1], [1, 0.25, 0], [0.001, 1, 0.001]]) {
+    const d = new THREE.Vector3(...dir).normalize();
+    cam.position.copy(c).addScaledVector(d, r * 3.2);
+    cam.lookAt(c);
+    renderer.render(view, cam);
+    thumbs.push(renderer.domElement.toDataURL('image/jpeg', 0.85));
+  }
+  view.remove(scene);
+  const glb = await new GLTFExporter().parseAsync(scene, { binary: true, maxTextureSize: opts.maxTex || 1024 });
+  const bytes = new Uint8Array(glb);
+  let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return { failed, size: [size.x, size.y, size.z].map(v => +v.toFixed(3)), min: [box.min.x, box.min.y, box.min.z].map(v=>+v.toFixed(3)), meshes, tris: Math.round(tris), mats: mats.size, texs: texs.size, thumbs, glb: btoa(bin) };
+};
+window.ready = true;
+</script></body></html>
