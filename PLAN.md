@@ -49,11 +49,13 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 * fotografie výhledu i do ostatních směrů (teď je fotka jen za balkonem, okna obýváku a ložnic koukají na procedurální pozadí),
 * sloučení drobných těles (zárubně, rámy oken) do jedné geometrie kvůli počtu draw callů.
 
-### Fáze 3 – nábytek a typické předměty
-1. Koupit CGTrader *Sit Com Set*, v Blenderu: převést FBX, srovnat měřítko podle `furniture.json`, UV unwrap, materiály, export do GLB po kusech.
-2. Stáhnout z 3D Warehouse Eames křeslo, stojací lampu a oba obrazy → GLB.
-3. Doplnit, co v balíčku chybí: Martinovo křeslo (proužkovaná látka – upravit Fabric Pattern 05), krb, knihovny, bar s lahvemi sherry, socha u sloupu, Eddieho pelíšek.
-4. V kódu nahradit zástupná tělesa za `GLTFLoader` + `DRACOLoader`, kolize ponechat obdélníkové z `furniture.json`.
+### Fáze 3 – nábytek a typické předměty ✅ hotovo (29. 10. 2026, bez placených a přihlašovacích zdrojů)
+* **glTF modely CC0 z Poly Haven** (11 kusů, `public/models/`): mid-century kožené křeslo jako zástupce Eames, podnožky, kožené křeslo u balkonu, jídelní židle, stolky, konzole za pohovkou, závěsné lampy, rostliny, busta, váza.
+* **Procedurální modely** (`src/world/props.ts`) tam, kde volný model není: Frasierova olivová pohovka (samet Fabric028) a dvojsedák, **Martinovo pruhované křeslo s vysunutou podnožkou a izolepou**, klavírní křídlo s otevřeným víkem, klaviaturou a pedály, kuchyňská linka s dvířky a dřezem, ostrůvek s varnou deskou, barové stoličky, skleněný jídelní stůl s podnoží do X, stojací lampa (v noci svítí), postele s povlečením, vany (i volně stojící černá), WC, umyvadla, koberec s bordurou, vestavěné skříňky pod okny.
+* **Obrazy**: procedurální abstraktní malby a zátiší s vázou, automaticky zavěšené na nejbližší stěnu; lze nahradit vlastním obrázkem (`image`).
+* Systém nábytku: `furniture.json` – `kind` (procedurální) nebo `model` (glTF/GLB, i vlastní), `scale` / `fit: "box"` / `modelRot`, kolizní obdélník; ověřeno, že všechny místnosti jsou průchozí.
+* Co zůstává na tobě (účet / platba) – viz **[STAHNOUT.md](STAHNOUT.md)**: originální Eames, lampa a obrazy z 3D Warehouse, případně CGTrader *Sit Com Set*.
+* Zatím chybí: krb, knihovny, bar s lahvemi sherry, Eddieho pelíšek, lednice, horní kuchyňské skříňky, drobnosti na policích.
 
 ### Fáze 4 – interakce a atmosféra
 * Rozsvěcení světel vypínači (`E` na vypínač), stmívání.
@@ -74,5 +76,5 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 * Měřítko je odhad (±10 %); pokud se najde kótovaný rozměr (např. šířka klavíru nebo výška dveří ze seriálu), stačí upravit `METERS_PER_PX` v `src/config.ts`.
 * Některé vnitřní příčky jsou v půdorysu šrafované a mohly se při trasování mírně zdeformovat; šatny a skříně mají jen otvory bez dveří.
 * Stíny vrhá jen slunce; stropní svítidla (noc) stíny nemají a prosvítají přes stěny.
-* Nábytek je jen zástupný.
+* Nábytek je zčásti zástupný (procedurální modely jsou jednodušší než skutečné kusy ze seriálu); polohy jsou odečtené z půdorysu s přesností ~10 cm.
 * Fotka výhledu je jen jedna (110° za balkonem); jinými okny je vidět procedurální pozadí. Noční verze je vypočtená, ne fotografovaná – okna se rozsvěcují i na části stromů.

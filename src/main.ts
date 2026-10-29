@@ -49,7 +49,7 @@ apartment.add(buildWalls(collision, loader, maxAniso));
 const floors = buildFloor(loader, maxAniso);
 apartment.add(floors.group, floors.ceiling);
 const interactables: Interactable[] = buildOpenings(apartment, collision);
-buildFurniture(apartment, collision);
+const furniture = buildFurniture(apartment, collision, loader, maxAniso);
 
 const hemi = new THREE.HemisphereLight(0xeef3ff, 0xe6d8c2, 0.75);
 scene.add(hemi);
@@ -66,7 +66,7 @@ sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.03;
 sun.shadow.radius = 3;
 scene.add(sun, sun.target);
-const lamps = buildLights(apartment);
+const lamps = [...buildLights(apartment), ...furniture.nightLights];
 
 const skyline = new Skyline(manager, maxAniso);
 scene.add(skyline.group);

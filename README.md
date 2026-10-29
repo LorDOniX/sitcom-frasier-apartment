@@ -33,7 +33,8 @@ pudorys.jpg ──► tools/trace_walls.py ──► src/data/walls.json      (p
 tools/plan_edits.json┘                    public/rooms.png         (mapa místností pro HUD)
                                           public/floors/*.png      (masky materiálů podlah)
 src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha – ručně zadané v px půdorysu)
-src/data/furniture.json (zástupný nábytek a světla)
+src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, světla)
+public/models/          (glTF modely CC0 – viz public/models/README.md)
 public/textures/        (PBR textury CC0 – viz public/textures/README.md)
 public/skybox.jpg       (fotografie výhledu, kopie ./skybox.jpg)
 ```
@@ -59,9 +60,11 @@ src/
   player.ts         pohyb první osobou (PointerLockControls)
   collision.ts      kolize kruh × úsečky
   minimap.ts, rooms.ts
-  world/walls.ts, openings.ts, furniture.ts, floor.ts, skyline.ts, materials.ts
+  world/walls.ts, openings.ts, floor.ts, skyline.ts, materials.ts
+  world/furniture.ts  rozmístění nábytku, glTF modely, obrazy, světla
+  world/props.ts      procedurální nábytek (pohovka, Martinovo křeslo, klavír, kuchyň, koupelny…)
   data/*.json
 tools/trace_walls.py, plan_edits.json
 ```
 
-Další postup, přehled zdrojů a fází viz [PLAN.md](PLAN.md).
+Další postup, přehled zdrojů a fází viz [PLAN.md](PLAN.md). Co si stáhnout / koupit sám: [STAHNOUT.md](STAHNOUT.md).

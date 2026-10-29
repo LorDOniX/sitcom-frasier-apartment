@@ -95,3 +95,33 @@ function pointInRing(p: THREE.Vector2, ring: THREE.Vector2[]): boolean {
   }
   return inside;
 }
+
+/**
+ * Nejbližší líc stěny k bodu p (svět x, z): bod na stěně a normála mířící k p.
+ * Slouží k zavěšení obrazů – v datech stačí bod v místnosti kousek od stěny.
+ */
+export function nearestWallFace(p: THREE.Vector2): { point: THREE.Vector2; normal: THREE.Vector2 } | null {
+  let best: { point: THREE.Vector2; normal: THREE.Vector2 } | null = null;
+  let bestD = Infinity;
+  for (const poly of wallsData.polygons as unknown as WallPolygon[]) {
+    for (const ring of [poly.outer, ...poly.holes]) {
+      const pts = ring.map(toWorld);
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        const ab = b.clone().sub(a);
+        const t = THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / ab.lengthSq(), 0, 1);
+        const q = a.clone().addScaledVector(ab, t);
+        const dist = q.distanceTo(p);
+        if (dist < bestD && ab.length() > 0.3) {
+          bestD = dist;
+          // normála kolmá na hranu (ne na spojnici), otočená k bodu p
+          const n = new THREE.Vector2(-ab.y, ab.x).normalize();
+          if (n.dot(p.clone().sub(q)) < 0) n.negate();
+          best = { point: q, normal: n };
+        }
+      }
+    }
+  }
+  return best;
+}

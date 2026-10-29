@@ -1,132 +1,192 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import data from '../data/furniture.json';
 import { WALL_HEIGHT } from '../config';
 import { toWorld, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
+import { abstractPainting, PropFactory } from './props';
+import { nearestWallFace } from './walls';
 
+/**
+ * Položka nábytku (src/data/furniture.json).
+ * - `kind`  = procedurální model (viz props.ts), nebo
+ * - `model` = glTF ve public/models/<model>/<model>.gltf, případně přímá cesta k vlastnímu .glb/.gltf.
+ * Modely jsou ve skutečném měřítku; `scale` je zvětší/zmenší, `fit: "box"` je natáhne
+ * přesně na size × h. Kolize je obdélník size, pokud není `collide: false`.
+ */
 interface Item {
   name: string;
-  kind: string;
+  kind?: string;
+  model?: string;
   pos: Px;
   size: [number, number];
   rot: number;
+  h?: number;
+  y?: number;
+  scale?: number;
+  fit?: 'box';
+  /** dodatečné natočení modelu (°), když vlastní model nemíří přední stranou na +Z */
+  modelRot?: number;
+  collide?: boolean;
+  color?: string;
+  seed?: number;
+  sink?: boolean;
+  light?: boolean;
+}
+
+interface Painting {
+  /** vlastní obrázek (např. /paintings/abstrakt.jpg) místo procedurální malby */
+  image?: string;
+  pos: Px;
+  w: number;
   h: number;
-  color: string;
+  y: number;
+  seed: number;
+  style?: string;
 }
 
-const box = (w: number, h: number, d: number, mat: THREE.Material, x = 0, y = 0, z = 0) => {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  m.position.set(x, y + h / 2, z);
-  return m;
-};
-
-/**
- * Zástupný nábytek z jednoduchých těles (fáze 1). Lokální osa X = šířka (size[0]),
- * Z = hloubka (size[1]); u postelí je čelo na -Z, u pohovek opěradlo na -Z.
- */
-function buildItem(it: Item): THREE.Object3D {
-  const g = new THREE.Group();
-  const [w, d] = it.size;
-  const h = it.h;
-  const mat = new THREE.MeshStandardMaterial({ color: it.color, roughness: 0.7 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.6 });
-  const white = new THREE.MeshStandardMaterial({ color: 0xf2f0ea, roughness: 0.8 });
-  switch (it.kind) {
-    case 'sofa':
-      g.add(box(w, h * 0.5, d, mat));
-      g.add(box(w, h * 0.5, d * 0.25, mat, 0, h * 0.5, -d * 0.375));
-      g.add(box(0.18, h * 0.25, d, mat, -w / 2 + 0.09, h * 0.5, 0));
-      g.add(box(0.18, h * 0.25, d, mat, w / 2 - 0.09, h * 0.5, 0));
-      break;
-    case 'armchair':
-      g.add(box(w, h * 0.45, d, mat));
-      g.add(box(w, h * 0.55, d * 0.22, mat, 0, h * 0.45, -d * 0.39));
-      break;
-    case 'bed':
-      g.add(box(w, h * 0.55, d, dark));
-      g.add(box(w - 0.04, h * 0.3, d - 0.08, white, 0, h * 0.55, 0.02));
-      g.add(box(w - 0.04, 0.06, d * 0.62, mat, 0, h * 0.85, d * 0.17));
-      g.add(box(w + 0.04, 1.05, 0.08, dark, 0, 0, -d / 2 - 0.04));
-      break;
-    case 'table': {
-      const top = new THREE.Mesh(
-        new THREE.CylinderGeometry(w / 2, w / 2, 0.03, 40),
-        new THREE.MeshPhysicalMaterial({ color: it.color, roughness: 0.05, transparent: true, opacity: 0.45 }),
-      );
-      top.position.y = h;
-      g.add(top);
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, h, 12), dark);
-      leg.position.y = h / 2;
-      g.add(leg);
-      break;
-    }
-    case 'chair':
-      g.add(box(w, 0.45, d, mat));
-      g.add(box(w, h - 0.45, 0.05, mat, 0, 0.45, -d / 2 + 0.025));
-      break;
-    case 'cylinder': {
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, h, 32), mat);
-      c.position.y = h / 2;
-      g.add(c);
-      break;
-    }
-    case 'piano': {
-      // křídlo: tvar s oblým koncem, klaviatura na -Z
-      const s = new THREE.Shape();
-      s.moveTo(-w / 2, -d / 2);
-      s.lineTo(w / 2, -d / 2);
-      s.lineTo(w / 2, d * 0.1);
-      s.quadraticCurveTo(w / 2, d / 2, 0, d / 2);
-      s.quadraticCurveTo(-w / 2, d / 2, -w / 2, 0);
-      s.lineTo(-w / 2, -d / 2);
-      const body = new THREE.Mesh(
-        new THREE.ExtrudeGeometry(s, { depth: 0.35, bevelEnabled: false, curveSegments: 12 }),
-        new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.15, metalness: 0.1 }),
-      );
-      body.rotation.x = Math.PI / 2;
-      body.position.y = h;
-      g.add(body);
-      g.add(box(w, 0.04, 0.16, white, 0, 0.72, -d / 2 - 0.06));
-      for (const [x, z] of [[-w / 2 + 0.1, -d / 2 + 0.1], [w / 2 - 0.1, -d / 2 + 0.1], [0, d / 2 - 0.15]]) {
-        g.add(box(0.07, h - 0.35, 0.07, dark, x, 0, z));
-      }
-      break;
-    }
-    case 'counter':
-      g.add(box(w, h - 0.04, d, mat));
-      g.add(box(w + 0.02, 0.04, d + 0.02, new THREE.MeshStandardMaterial({ color: 0x3a3634, roughness: 0.3 }), 0, h - 0.04, 0));
-      break;
-    default:
-      g.add(box(w, h, d, mat));
-  }
-  return g;
+export interface FurnitureResult {
+  /** Světla, která svítí jen v noci (stojací lampa apod.). */
+  nightLights: THREE.PointLight[];
 }
 
-export function buildFurniture(root: THREE.Object3D, collision: CollisionWorld) {
+export function buildFurniture(
+  root: THREE.Object3D,
+  collision: CollisionWorld,
+  loader: THREE.TextureLoader,
+  aniso: number,
+): FurnitureResult {
+  const props = new PropFactory(loader, aniso);
+  const gltf = new GLTFLoader(loader.manager);
+  const models = new Map<string, Promise<THREE.Object3D>>();
+  const nightLights: THREE.PointLight[] = [];
+
+  const loadModel = (name: string) => {
+    let p = models.get(name);
+    if (!p) {
+      const url = /\.(glb|gltf)$/.test(name) ? name : `/models/${name}/${name}.gltf`;
+      p = gltf.loadAsync(url).then((g) => {
+        g.scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = mesh.receiveShadow = true;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          for (const t of [mat.map, mat.normalMap, mat.roughnessMap]) if (t) t.anisotropy = aniso;
+        });
+        return g.scene;
+      });
+      models.set(name, p);
+    }
+    return p;
+  };
+
   for (const it of data.items as unknown as Item[]) {
-    const obj = buildItem(it);
-    obj.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
-    });
     const p = toWorld(it.pos);
-    obj.position.set(p.x, 0, p.y);
-    // rot v půdorysu je po směru hodinových ručiček (osa y dolů) => ve three.js záporný úhel
-    const yaw = -THREE.MathUtils.degToRad(it.rot);
-    obj.rotation.y = yaw;
-    root.add(obj);
+    const yaw = -THREE.MathUtils.degToRad(it.rot); // rot v půdorysu je po směru hodinových ručiček
+    const holder = new THREE.Group();
+    holder.position.set(p.x, it.y ?? 0, p.y);
+    holder.rotation.y = yaw;
+    holder.name = it.name;
+    root.add(holder);
 
-    // kolizní obdélník
-    const [w, d] = it.size;
-    const c = Math.cos(yaw);
-    const s = Math.sin(yaw);
-    const corners = [
-      [-w / 2, -d / 2],
-      [w / 2, -d / 2],
-      [w / 2, d / 2],
-      [-w / 2, d / 2],
-    ].map(([x, z]) => new THREE.Vector2(p.x + x * c + z * s, p.y - x * s + z * c));
-    collision.addPolygon(corners);
+    if (it.model) {
+      loadModel(it.model)
+        .then((src) => holder.add(fitModel(src.clone(), it)))
+        .catch((e) => console.warn(`Model ${it.model} (${it.name}) se nepodařilo načíst`, e));
+    } else if (it.kind) {
+      const obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink });
+      if (obj) {
+        obj.traverse((o) => {
+          if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+        });
+        holder.add(obj);
+      }
+    }
+
+    if (it.light) {
+      const l = new THREE.PointLight(0xffd9a0, 0, 6, 1.6);
+      l.position.set(0, (it.h ?? 1.6) - 0.15, 0);
+      l.visible = false;
+      holder.add(l);
+      nightLights.push(l);
+    }
+
+    if (it.collide !== false) {
+      const [w, d] = it.size;
+      const c = Math.cos(yaw);
+      const s = Math.sin(yaw);
+      collision.addPolygon(
+        [
+          [-w / 2, -d / 2],
+          [w / 2, -d / 2],
+          [w / 2, d / 2],
+          [-w / 2, d / 2],
+        ].map(([x, z]) => new THREE.Vector2(p.x + x * c + z * s, p.y - x * s + z * c)),
+      );
+    }
   }
+
+  for (const pt of data.paintings as unknown as Painting[]) root.add(buildPainting(pt, loader, aniso));
+  return { nightLights };
+}
+
+/** Vycentruje model na podlahu a přizpůsobí velikost. */
+function fitModel(obj: THREE.Object3D, it: Item): THREE.Object3D {
+  if (it.modelRot) {
+    obj.rotation.y = THREE.MathUtils.degToRad(it.modelRot);
+    obj.updateMatrixWorld(true);
+  }
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const wrap = new THREE.Group();
+  obj.position.sub(new THREE.Vector3(center.x, box.min.y, center.z));
+  wrap.add(obj);
+  if (it.fit === 'box') {
+    wrap.scale.set(it.size[0] / size.x, (it.h ?? size.y) / size.y, it.size[1] / size.z);
+  } else {
+    wrap.scale.setScalar(it.scale ?? 1);
+  }
+  return wrap;
+}
+
+/** Obraz zavěšený na nejbližší stěně: plátno s procedurální malbou v tenkém rámu. */
+function buildPainting(pt: Painting, loader: THREE.TextureLoader, aniso: number): THREE.Object3D {
+  const g = new THREE.Group();
+  const face = nearestWallFace(toWorld(pt.pos));
+  if (!face) return g;
+  const tex = pt.image
+    ? loader.load(pt.image)
+    : new THREE.CanvasTexture(abstractPainting(pt.seed, pt.w / pt.h, pt.style ?? 'abstract'));
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = aniso;
+  const edge = new THREE.MeshStandardMaterial({ color: 0xf2efe8 });
+  const canvas = new THREE.Mesh(new THREE.BoxGeometry(pt.w, pt.h, 0.03), [
+    edge,
+    edge,
+    edge,
+    edge,
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }),
+    edge,
+  ]);
+  canvas.castShadow = true;
+  g.add(canvas);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x1c1a18, roughness: 0.4 });
+  const f = 0.025;
+  for (const [w, h, x, y] of [
+    [pt.w + 2 * f, f, 0, pt.h / 2 + f / 2],
+    [pt.w + 2 * f, f, 0, -pt.h / 2 - f / 2],
+    [f, pt.h, -pt.w / 2 - f / 2, 0],
+    [f, pt.h, pt.w / 2 + f / 2, 0],
+  ]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.045), frameMat);
+    m.position.set(x, y, 0);
+    g.add(m);
+  }
+  // přední strana plátna (+Z) míří od stěny do místnosti
+  g.position.set(face.point.x + face.normal.x * 0.03, pt.y, face.point.y + face.normal.y * 0.03);
+  g.rotation.y = Math.atan2(face.normal.x, face.normal.y);
+  return g;
 }
 
 /** Stropní svítidla: bodové světlo kousek pod stropem + svítící disk na stropě. */
