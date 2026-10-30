@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { loadPbr } from './materials';
 
 /**
@@ -20,6 +21,10 @@ export interface PropDef {
   top?: string;
   /** obrys koberce v lokálních souřadnicích [x, z] v m (místo obdélníku size) */
   poly?: [number, number][];
+  /** kuchyňská linka: horní prosklené skříňky (true), nebo otevřená police průchodu do jídelny ("open") */
+  upper?: boolean | 'open';
+  /** výška stropu nad spodkem předmětu (doplní furniture.ts) */
+  ceil?: number;
 }
 
 export class PropFactory {
@@ -61,9 +66,26 @@ export class PropFactory {
         break;
       case 'counter':
         this.counter(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826', !!def.sink);
+        if (def.upper === 'open') this.passShelf(g, w, def.ceil ?? 2.75);
+        else if (def.upper) this.upperCabinets(g, w, d);
         break;
       case 'island':
         this.island(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826');
+        break;
+      case 'column':
+        this.column(g, w, h);
+        break;
+      case 'roundcase':
+        this.roundCase(g, w, d, h);
+        break;
+      case 'pantry':
+        this.pantry(g, w, d, h);
+        break;
+      case 'cladding':
+        g.add(box(w, h, d, this.grain('#c98f5a', 1)));
+        break;
+      case 'hood':
+        this.hood(g, w, d, h);
         break;
       case 'radio':
         this.radio(g, w, d, h);
@@ -112,6 +134,7 @@ export class PropFactory {
       default:
         return null;
     }
+    mergeByMaterial(g);
     return g;
   }
 
@@ -152,6 +175,22 @@ export class PropFactory {
   }
   private wood() {
     return this.paint('#3b2618', 0.55);
+  }
+  /** Světlé dřevo se svislou kresbou (procedurální textura); repeat = opakování textury přes UV. */
+  private grain(color: string, repeat = 1): THREE.Material {
+    return this.mat(`grain:${color}:${repeat}`, () => {
+      const tex = new THREE.CanvasTexture(woodGrain(color));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeat, 1);
+      tex.anisotropy = this.aniso;
+      return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5 });
+    });
+  }
+  private cabGlass() {
+    return this.mat('cabglass', () =>
+      new THREE.MeshPhysicalMaterial({ color: 0xe6f2f2, roughness: 0.05, transparent: true, opacity: 0.22, depthWrite: false }),
+    );
   }
 
   // --- sedací nábytek --------------------------------------------------------
@@ -400,6 +439,221 @@ export class PropFactory {
     }
   }
 
+  // --- sloup s knihovnou, kuchyňské skříňky, digestoř -------------------------------
+
+  /** Masivní dřevěný sloup od podlahy ke stropu s profilovanou patkou a hlavicí (roh vyvýšené části u balkonu). */
+  private column(g: THREE.Group, w: number, h: number) {
+    const wood = this.grain('#c68c52', 3);
+    const r = (w / 2) * 0.88;
+    const cyl = (rt: number, rb: number, height: number, y: number) => {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, height, 48), wood);
+      m.position.y = y + height / 2;
+      g.add(m);
+    };
+    cyl(r * 1.45, r * 1.45, 0.1, 0); // plinta
+    cyl(r * 1.3, r * 1.38, 0.07, 0.1);
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(r * 1.16, 0.045, 12, 48).rotateX(Math.PI / 2), wood);
+    torus.position.y = 0.21;
+    g.add(torus);
+    cyl(r * 1.08, r * 1.12, 0.05, 0.25);
+    cyl(r, r, h - 0.42, 0.3); // dřík
+    cyl(r * 1.12, r * 1.02, 0.06, h - 0.12); // hlavice
+    cyl(r * 1.25, r * 1.25, 0.06, h - 0.06);
+  }
+
+  /**
+   * Půlkruhová knihovna u paty sloupu (v rohu schodu): rovná záda na -Z, oblouk do obýváku (+Z),
+   * dvě police, svislé přepážky a knihy (jeden InstancedMesh s barvou na knihu).
+   */
+  private roundCase(g: THREE.Group, w: number, d: number, h: number) {
+    const R = w / 2;
+    const z0 = -d / 2;
+    const maple = this.grain('#d8b886', 2);
+    const t = 0.025;
+    const base = 0.06;
+    const halfDisc = (r: number, y: number, thick: number, mat: THREE.Material) => {
+      const pts: THREE.Vector2[] = [];
+      for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * Math.PI;
+        pts.push(new THREE.Vector2(r * Math.cos(a), -(z0 + r * Math.sin(a))));
+      }
+      const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: thick, bevelEnabled: false, curveSegments: 1 });
+      geo.rotateX(-Math.PI / 2);
+      const m = new THREE.Mesh(geo, mat);
+      m.position.y = y;
+      g.add(m);
+    };
+    halfDisc(R - 0.03, 0, base, this.paint('#8a6a45', 0.6)); // sokl
+    halfDisc(R, base, t, maple);
+    const mid = base + (h - base) / 2;
+    halfDisc(R, mid, t, maple);
+    halfDisc(R + 0.01, h - t, t, maple);
+    const depth = 0.22;
+    halfDisc(R - depth, base, h - base - t, maple); // plné jádro za knihami
+    g.add(box(w, h, 0.02, maple, 0, 0, z0 + 0.01)); // záda
+    // svislé přepážky (radiálně), krajní uzavírají půlkruh u zad
+    for (const a of [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI]) {
+      const p = box(depth, h - base - t, t, maple);
+      p.position.set((R - depth / 2) * Math.cos(a), base, z0 + (R - depth / 2) * Math.sin(a));
+      p.rotation.y = -a;
+      g.add(p);
+    }
+    // knihy po obvodu v každé přihrádce
+    const rnd = seeded(7);
+    const colors = ['#7a2e24', '#2e3f5c', '#1f4a3a', '#8c6a2f', '#d9cfb8', '#5b3a29', '#283028', '#a8452f', '#3c3550'];
+    const books: { m: THREE.Matrix4; c: THREE.Color }[] = [];
+    const rb = R - 0.12;
+    for (const [y0, y1] of [[base + t, mid], [mid + t, h - t]]) {
+      for (let k = 0; k < 4; k++) {
+        let a = (k * Math.PI) / 4 + 0.04;
+        const end = ((k + 1) * Math.PI) / 4 - 0.04;
+        while (a < end) {
+          const thick = 0.022 + rnd() * 0.022;
+          const da = thick / rb;
+          if (a + da > end) break;
+          if (rnd() < 0.08) {
+            a += da * 2; // mezera
+            continue;
+          }
+          const bh = Math.min(y1 - y0 - 0.02, 0.17 + rnd() * 0.12);
+          const am = a + da / 2;
+          const m = new THREE.Matrix4().compose(
+            new THREE.Vector3(rb * Math.cos(am), y0 + bh / 2, z0 + rb * Math.sin(am)),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2 - am),
+            new THREE.Vector3(thick - 0.002, bh, 0.17 + rnd() * 0.03),
+          );
+          books.push({ m, c: new THREE.Color(colors[Math.floor(rnd() * colors.length)]) });
+          a += da;
+        }
+      }
+    }
+    const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), this.paint('#ffffff', 0.8), books.length);
+    books.forEach((b, i) => {
+      inst.setMatrixAt(i, b.m);
+      inst.setColorAt(i, b.c);
+    });
+    g.add(inst);
+  }
+
+  /** Horní bílé skříňky s prosklenými dvířky (mřížka tabulek) a sklenicemi a hrnky uvnitř – nad kuchyňskou linkou. */
+  private upperCabinets(g: THREE.Group, w: number, d: number) {
+    const white = this.paint('#f2efe8', 0.45);
+    const inner = this.paint('#e4dfd4', 0.7);
+    const u = 0.34;
+    const y0 = 1.42;
+    const y1 = 2.2;
+    const H = y1 - y0;
+    const zb = -d / 2; // zadní hrana linky = stěna
+    const zc = zb + u / 2;
+    g.add(box(w, 0.02, u, white, 0, y0, zc));
+    g.add(box(w, 0.02, u, white, 0, y1 - 0.02, zc));
+    g.add(box(w, H * 0.02, u - 0.02, white, 0, y0 + H * 0.5, zc - 0.01)); // police
+    g.add(box(w, H, 0.012, inner, 0, y0, zb + 0.006)); // záda
+    for (const s of [-1, 1]) g.add(box(0.02, H, u, white, (s * (w - 0.02)) / 2, y0, zc));
+    const doors = Math.max(1, Math.round(w / 0.5));
+    const dw = w / doors;
+    const zf = zb + u - 0.01;
+    const bar = 0.045;
+    const mun = 0.014;
+    const tumblers: THREE.Matrix4[] = [];
+    const mugs: THREE.Matrix4[] = [];
+    for (let i = 0; i < doors; i++) {
+      const x = -w / 2 + dw * (i + 0.5);
+      // rám dvířek
+      g.add(box(dw - 0.006, bar, 0.02, white, x, y0 + 0.02, zf));
+      g.add(box(dw - 0.006, bar, 0.02, white, x, y1 - 0.02 - bar, zf));
+      for (const s of [-1, 1]) g.add(box(bar, H - 0.04, 0.02, white, x + (s * (dw - 0.006 - bar)) / 2, y0 + 0.02, zf));
+      // sklo a příčky (2 sloupce × 3 řady tabulek)
+      g.add(box(dw - 2 * bar, H - 0.04 - 2 * bar, 0.004, this.cabGlass(), x, y0 + 0.02 + bar, zf));
+      g.add(box(mun, H - 0.04 - 2 * bar, 0.012, white, x, y0 + 0.02 + bar, zf + 0.004));
+      for (const f of [1 / 3, 2 / 3]) g.add(box(dw - 2 * bar, mun, 0.012, white, x, y0 + 0.02 + bar + (H - 0.04 - 2 * bar) * f, zf + 0.004));
+      g.add(box(0.012, 0.06, 0.02, this.chrome(), x + (i % 2 ? -1 : 1) * (dw / 2 - 0.07), y0 + 0.06, zf + 0.02));
+      // obsah: na každé polici sklenice a hrnky
+      for (const sy of [y0 + 0.02, y0 + H * 0.52]) {
+        for (let k = 0; k < 3; k++) {
+          const px = x - dw * 0.3 + k * dw * 0.3;
+          const m = new THREE.Matrix4().makeTranslation(px, sy + 0.06, zc - 0.03);
+          (k === 1 ? mugs : tumblers).push(m);
+        }
+      }
+    }
+    const addInst = (geo: THREE.BufferGeometry, mat: THREE.Material, list: THREE.Matrix4[]) => {
+      const inst = new THREE.InstancedMesh(geo, mat, list.length);
+      list.forEach((m, i) => inst.setMatrixAt(i, m));
+      g.add(inst);
+    };
+    addInst(new THREE.CylinderGeometry(0.035, 0.03, 0.12, 16, 1, true), this.cabGlass(), tumblers);
+    addInst(new THREE.CylinderGeometry(0.04, 0.04, 0.1, 16), this.ceramic(), mugs);
+  }
+
+  /**
+   * Průchod z kuchyně do jídelny: nad linkou (poloostrovem) visí bílá otevřená police – vlevo dlouhé police,
+   * vpravo mřížka přihrádek, bez zad i dvířek (je přes ni vidět ke klavíru); nad ní překlad až ke stropu.
+   */
+  private passShelf(g: THREE.Group, w: number, ceil: number) {
+    const white = this.paint('#f2efe8', 0.5);
+    const u = 0.32;
+    const y0 = 1.45;
+    const y1 = 2.25;
+    const H = y1 - y0;
+    const t = 0.03;
+    g.add(box(w, t, u, white, 0, y0, 0));
+    g.add(box(w, t, u, white, 0, y1 - t, 0));
+    for (const s of [-1, 1]) g.add(box(t, H, u, white, (s * (w - t)) / 2, y0, 0));
+    // levá část: dvě dlouhé police; pravá třetina: mřížka 2 × 3 přihrádky
+    const split = w / 2 - w * 0.36;
+    g.add(box(t, H, u, white, split, y0, 0));
+    for (const f of [1 / 3, 2 / 3]) {
+      g.add(box(split + w / 2, t, u, white, (-w / 2 + split) / 2, y0 + H * f, 0));
+      g.add(box(w / 2 - split, t, u, white, (split + w / 2) / 2, y0 + H * f, 0));
+    }
+    g.add(box(t, H, u, white, (split + w / 2) / 2, y0, 0));
+    // překlad nad průchodem (omítka) až ke stropu
+    if (ceil > y1 + 0.05) g.add(box(w, ceil - y1, u, this.paint('#eee6d8', 0.9), 0, y1, 0));
+    // sklenice na polici
+    const glasses: THREE.Matrix4[] = [];
+    for (let i = 0; i < 6; i++) glasses.push(new THREE.Matrix4().makeTranslation(-w / 2 + 0.25 + i * 0.13, y0 + t + 0.07, 0));
+    const inst = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.025, 0.14, 16, 1, true), this.cabGlass(), glasses.length);
+    glasses.forEach((m, i) => inst.setMatrixAt(i, m));
+    g.add(inst);
+  }
+
+  /** Vysoká bílá spíž od podlahy ke stropu: dvoje dvířka s mřížkou vystouplých kazet a mosaznými úchytkami. */
+  private pantry(g: THREE.Group, w: number, d: number, h: number) {
+    const white = this.paint('#ece8de', 0.55);
+    g.add(box(w, h, d - 0.02, white, 0, 0, -0.01));
+    const cols = 2;
+    const rows = 8;
+    const dw = w / 2;
+    const zf = d / 2;
+    for (let k = 0; k < 2; k++) {
+      const x0 = -w / 2 + k * dw;
+      g.add(box(0.006, h - 0.06, 0.01, this.paint('#cfc9bc', 0.6), x0 + dw, 0.03, zf)); // spára mezi dvířky
+      const pw = (dw - 0.08) / cols;
+      const ph = (h - 0.1) / rows;
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          g.add(box(pw - 0.045, ph - 0.045, 0.014, white, x0 + 0.04 + pw * (c + 0.5), 0.05 + ph * r + 0.0225, zf + 0.007));
+        }
+      }
+    }
+    for (const s of [-1, 1]) g.add(box(0.012, 0.09, 0.02, this.brass(), s * 0.04, h * 0.48, zf + 0.02));
+  }
+
+  /** Digestoř nad ostrůvkem: černý kryt dole, dřevěný pás a komín ke stropu, světlo zespodu. */
+  private hood(g: THREE.Group, w: number, d: number, h: number) {
+    const wood = this.grain('#d8b886', 2);
+    g.add(box(w, 0.2, d, this.paint('#141414', 0.35, 0.3)));
+    g.add(box(w + 0.06, 0.14, d + 0.06, wood, 0, 0.2, 0));
+    g.add(box(w * 0.82, h - 0.34, d * 0.82, wood, 0, 0.34, 0));
+    const lamp = new THREE.Mesh(
+      new THREE.PlaneGeometry(w * 0.5, d * 0.25).rotateX(Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0xfff4e0, emissive: 0xfff1dc, emissiveIntensity: 0.6 }),
+    );
+    lamp.position.y = -0.001;
+    g.add(lamp);
+  }
+
   // --- úložné prostory ---------------------------------------------------------
 
   /** Vestavěná skříň až ke stropu (Daphnin pokoj): javorový rám, dvoje dveře s mřížkovou výplní, nadpraží. */
@@ -567,6 +821,36 @@ export class PropFactory {
 
 // --- pomocné funkce -----------------------------------------------------------
 
+/**
+ * Sloučí meshe skupiny se stejným materiálem do jednoho (procedurální nábytek má desítky krabic – méně draw calls).
+ * Pojmenované meshe (např. stupnice rádia), InstancedMesh a vícemateriálové meshe zůstanou samostatně.
+ */
+function mergeByMaterial(g: THREE.Group) {
+  g.updateMatrixWorld(true);
+  const byMat = new Map<THREE.Material, THREE.Mesh[]>();
+  g.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || (m as THREE.InstancedMesh).isInstancedMesh || m.name || Array.isArray(m.material)) return;
+    const list = byMat.get(m.material) ?? [];
+    list.push(m);
+    byMat.set(m.material, list);
+  });
+  for (const [mat, meshes] of byMat) {
+    if (meshes.length < 2) continue;
+    const geos = meshes.map((m) => {
+      let geo = m.geometry.clone().applyMatrix4(m.matrixWorld);
+      if (geo.index) geo = geo.toNonIndexed();
+      for (const name of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(name)) geo.deleteAttribute(name);
+      if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
+      return geo;
+    });
+    const merged = mergeGeometries(geos);
+    if (!merged) continue;
+    for (const m of meshes) m.parent?.remove(m);
+    g.add(new THREE.Mesh(merged, mat));
+  }
+}
+
 export function box(w: number, h: number, d: number, mat: THREE.Material, x = 0, y = 0, z = 0): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y + h / 2, z);
@@ -578,6 +862,33 @@ function rbox(w: number, h: number, d: number, mat: THREE.Material, x = 0, y = 0
   const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.max(0.001, rr)), mat);
   m.position.set(x, y + h / 2, z);
   return m;
+}
+
+/** Svislá kresba světlého dřeva: podélná vlákna různého odstínu s jemným vlněním. */
+function woodGrain(color: string): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 512;
+  const g = c.getContext('2d')!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, c.width, c.height);
+  const rnd = seeded(11);
+  for (let i = 0; i < 140; i++) {
+    const x0 = rnd() * c.width;
+    const dark = rnd() < 0.6;
+    g.strokeStyle = dark ? `rgba(70, 40, 15, ${0.05 + rnd() * 0.12})` : `rgba(255, 240, 210, ${0.05 + rnd() * 0.1})`;
+    g.lineWidth = 0.6 + rnd() * 2.2;
+    g.beginPath();
+    const amp = 1 + rnd() * 4;
+    const f = 0.004 + rnd() * 0.01;
+    for (let y = 0; y <= c.height; y += 16) {
+      const x = x0 + Math.sin(y * f + i) * amp;
+      if (y === 0) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  return c;
 }
 
 /** Koule (elipsoid) se 16 svislými žebry jako nohy konferenčního stolku. */

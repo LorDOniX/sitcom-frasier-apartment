@@ -74,7 +74,10 @@ Na Windows bez WSL: `npm run dev` a `npm run assets` fungují, Python skripty po
 Možná vylepšení: popisek výhledu z balkonu a dalších obrazů (chybí ověřené informace), světla v ostatních koupelnách, toaletě, komoře a prádelně (nemají svítidlo), hlas rádia jde mimo prostorový zvuk (`speechSynthesis` nejde napojit na Web Audio).
 
 ## Drobnosti, které zbývají
-- Chybí: knihovny, bar s lahvemi sherry, Eddieho pelíšek, horní kuchyňské skříňky, drobnosti na policích.
+- ✅ Doplněno (30. 10. 2026): dřevěný sloup s půlkruhovou knihovnou v rohu schodu, horní prosklené skříňky nad dřezem, otevřená police v průchodu z kuchyně do jídelny, vysoká spíž, digestoř nad ostrůvkem, dřevěný obklad a trám u vstupu do kuchyně (procedurálně podle referenčních fotek a Unreal renderu; podstavec s bustou přesunut ze sloupu k oknu).
+- Vizuální předloha: náhledy a video fanouškovské rekonstrukce v Unreal Engine v `stazene/reference/unreal/` (jen pro lokální použití, ne do gitu).
+- Náměty z videa: toaleta pro hosty s umyvadlem na nožce a kulatým zrcadlem, velký barevný abstraktní obraz na dlouhé stěně obýváku, černá skříňka u stěny, balkon (gril, rostliny, stolek).
+- Chybí: další knihovny, bar s lahvemi sherry, Eddieho pelíšek, drobnosti na policích.
 - Ze 3D Warehouse nestaženo: Frasier's Floor Lamp, Large Abstract Painting, Framed Art 2, Side Table, Wassily Chair (odkazy v @STAHNOUT.md, limit 3 stažení/den).
 - Fotka 360° pro výhled z ostatních oken (kandidát: *Space Needle 360 Panorama* na Wikimedia Commons, CC BY-SA 3.0).
 - Stropní světla v noci nemají stíny a prosvítají stěnami.

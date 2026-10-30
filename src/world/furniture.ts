@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import data from '../data/furniture.json';
 import info from '../data/info.json';
+import { WALL_HEIGHT } from '../config';
 import { toWorld, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
 import type { Interactable } from '../interact';
@@ -40,6 +41,8 @@ interface Item {
   sink?: boolean;
   /** barva pracovní desky (kuchyň) */
   top?: string;
+  /** kuchyňská linka s horními skříňkami (true) nebo s otevřenou policí průchodu ("open") */
+  upper?: boolean | 'open';
   /** obrys v px půdorysu (koberec přes celou místnost); rot se u něj ignoruje */
   poly?: Px[];
   /** lampa: E ji rozsvítí / zhasne; on = rozsvícená na začátku, power = intenzita světla */
@@ -135,7 +138,8 @@ export function buildFurniture(
         return [v.x - p.x, v.y - p.y];
       });
       if (poly) holder.rotation.y = 0;
-      obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink, top: it.top, poly });
+      obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink, top: it.top, poly, upper: it.upper,
+        ceil: WALL_HEIGHT - floorY - (it.y ?? 0) });
       if (obj) {
         obj.traverse((o) => {
           if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;

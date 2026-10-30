@@ -107,7 +107,8 @@ src/
   world/furniture.ts  rozmístění nábytku, glTF modely, obrazy, akce předmětů
   world/lighting.ts   stropní světla, vypínače, okruhy světel
   world/actions.ts    klavír, rádio, popisky
-  world/props.ts      procedurální nábytek (pohovka, Martinovo křeslo, klavír, kuchyň, koupelny…)
+  world/props.ts      procedurální nábytek (pohovka, Martinovo křeslo, klavír, kuchyň s horními skříňkami a digestoří,
+                      sloup s knihovnou, konferenční stolek, rádio, koupelny…); meshe se slučují podle materiálu
   data/*.json
 tools/trace_walls.py, plan_edits.json
 ```
