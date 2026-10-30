@@ -6,6 +6,7 @@ import info from '../data/info.json';
 import { toWorld, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
 import type { Interactable } from '../interact';
+import { markShadows } from '../quality';
 import { floorHeight } from '../levels';
 import { InfoItem, PianoPlayer, RadioSet } from './actions';
 import { Circuit } from './lighting';
@@ -121,7 +122,10 @@ export function buildFurniture(
 
     if (it.model) {
       loadModel(it.model)
-        .then((src) => holder.add(fitModel(src.clone(), it)))
+        .then((src) => {
+          holder.add(fitModel(src.clone(), it));
+          markShadows(2);
+        })
         .catch((e) => console.warn(`Model ${it.model} (${it.name}) se nepodařilo načíst`, e));
     }
     let obj: THREE.Object3D | null = null;

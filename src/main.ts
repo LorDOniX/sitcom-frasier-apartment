@@ -16,18 +16,23 @@ import { buildLighting } from './world/lighting';
 import { buildOpenings } from './world/openings';
 import { Skyline } from './world/skyline';
 import { buildWalls } from './world/walls';
+import { QUALITY, isTouch, loadQuality, markShadows, saveQuality, takeShadowUpdate, type Quality } from './quality';
+import { TouchControls } from './touch';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // --- renderer, scéna, kamera -------------------------------------------------
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const quality = loadQuality();
+const Q = QUALITY[quality];
+const renderer = new THREE.WebGLRenderer({ antialias: Q.antialias });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, Q.pixelRatio));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false; // přepočet jen při změně (viz markShadows v quality.ts)
 $('app').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -68,14 +73,14 @@ const sun = new THREE.DirectionalLight(0xffe4c2, 5.5);
 sun.position.copy(new THREE.Vector3(-0.45, 0.42, 0.79).normalize().multiplyScalar(60));
 sun.target.position.set(0, 0, 0);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(Q.shadowMap, Q.shadowMap);
 Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 130 });
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.03;
 sun.shadow.radius = 3;
 scene.add(sun, sun.target);
 
-const skyline = new Skyline(manager, renderer);
+const skyline = new Skyline(manager, renderer, Q.skylineWidth);
 scene.add(skyline.group);
 
 const rooms = new Rooms(loader);
@@ -91,6 +96,7 @@ function applyDayNight() {
   hemi.intensity = night ? 0.25 : 0.75;
   sun.intensity = night ? 0 : 5.5;
   for (const c of circuits) c.setNight(night);
+  markShadows();
 }
 applyDayNight();
 
@@ -106,13 +112,39 @@ manager.onProgress = (_url, loaded, total) => {
 manager.onLoad = () => {
   $('loading').hidden = true;
   startBtn.hidden = false;
+  markShadows(2); // masky stropu a modely jsou načtené
 };
+
+// dotykové ovládání místo Pointer Locku (telefon, tablet)
+const touch = new TouchControls(camera, () => act(), (code) => key(code), () => {
+  touch.stop();
+  overlay.classList.remove('hidden');
+});
+if (isTouch) {
+  $('keys').hidden = true;
+  $('touch-help').hidden = false;
+}
+const playing = () => player.controls.isLocked || touch.active;
+
 startBtn.addEventListener('click', () => {
   audio.start(); // AudioContext jde vytvořit jen z gesta uživatele
-  player.controls.lock();
+  if (isTouch) {
+    touch.start();
+    overlay.classList.add('hidden');
+  } else {
+    player.controls.lock();
+  }
 });
 player.controls.addEventListener('lock', () => overlay.classList.add('hidden'));
 player.controls.addEventListener('unlock', () => overlay.classList.remove('hidden'));
+
+// volba kvality: uloží se a stránka se načte znovu (vyhlazování hran jde nastavit jen při vytvoření rendereru)
+const qualitySelect = $<HTMLSelectElement>('quality');
+for (const [k, v] of Object.entries(QUALITY)) qualitySelect.add(new Option(v.label, k, false, k === quality));
+qualitySelect.addEventListener('change', () => {
+  saveQuality(qualitySelect.value as Quality);
+  location.reload();
+});
 
 const raycaster = new THREE.Raycaster();
 raycaster.far = INTERACT_DISTANCE;
@@ -126,8 +158,9 @@ function updateFocus(dt: number) {
   // první zásah, který patří nějakému interaktivnímu objektu (modely se dotahují později, proto rekurzivně)
   const hits = raycaster.intersectObjects(targets, true);
   focused = hits.length ? interactableOf(hits[0].object) : null;
-  if (focused && player.controls.isLocked) {
-    hint.textContent = `E – ${focused.hint()}`;
+  touch.setActionEnabled(!!focused);
+  if (focused && playing()) {
+    hint.textContent = touch.active ? focused.hint() : `E – ${focused.hint()}`;
     hint.style.display = 'block';
   } else {
     hint.style.display = 'none';
@@ -151,11 +184,25 @@ function updateAmbience() {
 }
 player.onStep = () => audio.step(rooms.surfaceAt(camera.position.x, camera.position.z));
 
+function act() {
+  focused?.interact(new THREE.Vector2(camera.position.x, camera.position.z));
+}
+
+const fpsLabel = $('fps');
+let fpsFrames = 0;
+let fpsTime = 0;
+
 window.addEventListener('keydown', (e) => {
-  if (e.repeat) return;
-  switch (e.code) {
+  if (!e.repeat) key(e.code);
+});
+
+function key(code: string) {
+  switch (code) {
     case 'KeyE':
-      focused?.interact(new THREE.Vector2(camera.position.x, camera.position.z));
+      act();
+      break;
+    case 'KeyF':
+      fpsLabel.hidden = !fpsLabel.hidden;
       break;
     case 'KeyM':
       minimap.toggle();
@@ -171,7 +218,7 @@ window.addEventListener('keydown', (e) => {
       player.collisions = !player.collisions;
       break;
   }
-});
+}
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -180,19 +227,28 @@ window.addEventListener('resize', () => {
 });
 
 // ladění z konzole / automatických testů
-Object.assign(window, { __frasier: { camera, player, interactables, toPlan, toWorld, scene, floorHeight, audio, rooms, focus: () => focused } });
+Object.assign(window, { __frasier: { renderer, camera, player, interactables, toPlan, toWorld, scene, floorHeight, audio, rooms, focus: () => focused } });
 
 // --- smyčka ----------------------------------------------------------------
 const timer = new THREE.Timer();
 renderer.setAnimationLoop((time) => {
   timer.update(time);
-  const dt = Math.min(timer.getDelta(), 0.05);
-  if (player.controls.isLocked) player.update(dt);
+  const raw = timer.getDelta();
+  const dt = Math.min(raw, 0.05);
+  player.input.copy(touch.move);
+  if (playing()) player.update(dt);
   for (const i of interactables) i.update?.(dt);
   updateFocus(dt);
   updateAmbience();
   const p = camera.position;
   minimap.draw(p.x, p.z, player.yaw);
   roomLabel.textContent = rooms.at(p.x, p.z) ?? '';
+  renderer.shadowMap.needsUpdate = takeShadowUpdate();
   renderer.render(scene, camera);
+  fpsFrames++;
+  fpsTime += raw;
+  if (fpsTime >= 0.5) {
+    fpsLabel.textContent = `${Math.round(fpsFrames / fpsTime)} FPS · ${QUALITY[quality].label.toLowerCase()} kvalita · ${renderer.info.render.calls} draw calls`;
+    fpsFrames = fpsTime = 0;
+  }
 });

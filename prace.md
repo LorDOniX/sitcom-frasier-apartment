@@ -25,6 +25,7 @@ Hotové fáze (podrobně v @PLAN.md, technický popis v @README.md, zdroje v @ST
 - **Fáze 3** – nábytek: procedurální (Martinovo křeslo, klavír, kuchyň, koupelny, postele) + Poly Haven (CC0) + 19 modelů z 3D Warehouse (pohovka, Eames, jídelní souprava, stoličky, krb, lednice, obrazy…); výhled z fotek Kerry Parku (den i noc, CC BY-SA).
 - **Fáze 4** – vypínače světel, lampy, popisky zajímavostí, dveře od hráče, model vstupních dveří, syntetizované zvuky, klavír, rádio KACL.
 - **Fáze 5 (část)** – zmenšení pro web: zdroje v `assets/`, `npm run assets` → `public/` (meshopt + WebP), 44 MB → 13 MB, draw calls modelů 1 308 → 113.
+- **Fáze 5 (kvalita, mobil)** – volba kvality, dotykové ovládání, stíny jen při změně, sdílení textur.
 
 # Zprovoznění na jiném PC
 
@@ -80,8 +81,10 @@ Možná vylepšení: popisek výhledu z balkonu a dalších obrazů (chybí ově
 - Výplňové světlo je všude stejné – předpočítané osvětlení (lightmapa z Blenderu) by výrazně pomohlo.
 
 ## Fáze 5 – zbytek
-- KTX2 textury (méně paměti GPU, hlavně mobily), LOD / lazy loading místností.
-- Mobilní ovládání (virtuální joystick), nastavení kvality (stíny, rozlišení).
+- ✅ Nastavení kvality (nízká / střední / vysoká v úvodním menu), dotykové ovládání pro telefon a tablet, počítadlo FPS (`F`).
+- ✅ Stínová mapa jen při změně, sdílení PBR textur, menší fotka výhledu podle kvality (paměť textur v GPU ~719 → 607 MB, nízká kvalita 540 MB).
+- KTX2 textury (méně paměti GPU, hlavně mobily) – potřebuje `toktx` z KTX-Software (archiv bez instalace, 6 MB); zbývající paměť je hlavně v texturách modelů a PBR mapách.
+- LOD / lazy loading místností.
 - Nasazení na statický hosting – až po vyřešení licencí (modely z 3D Warehouse a půdorys šířit nelze; fotky CC BY-SA s uvedením autora jsou OK).
 
 # Užitečné příkazy

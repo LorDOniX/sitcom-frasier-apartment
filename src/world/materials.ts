@@ -8,6 +8,36 @@ export interface PbrMaps {
 }
 
 /**
+ * Načtené obrázky podle URL. Každé použití mapy (jiný odstín látky, jiné opakování) dostane vlastní
+ * Texture se sdíleným zdrojem (Texture.source) – do GPU se obrázek nahraje jen jednou.
+ * Textura se označí k nahrání až po načtení obrázku (jinak by three.js každý snímek varoval).
+ */
+interface Shared {
+  source: THREE.Texture["source"];
+  loaded: boolean;
+  waiting: THREE.Texture[];
+}
+const cache = new Map<string, Shared>();
+
+function sharedTexture(loader: THREE.TextureLoader, url: string): THREE.Texture {
+  let s = cache.get(url);
+  if (!s) {
+    const entry: Shared = { source: null!, loaded: false, waiting: [] };
+    entry.source = loader.load(url, () => {
+      entry.loaded = true;
+      for (const t of entry.waiting) t.needsUpdate = true;
+      entry.waiting.length = 0;
+    }).source;
+    cache.set(url, (s = entry));
+  }
+  const t = new THREE.Texture();
+  t.source = s.source;
+  if (s.loaded) t.needsUpdate = true;
+  else s.waiting.push(t);
+  return t;
+}
+
+/**
  * Načte PBR mapy a nastaví opakování. repeat = kolikrát se textura zopakuje
  * přes UV 0..1 (u podlahy celý půdorys, u stěn 1 UV = 1 m).
  */
@@ -20,7 +50,7 @@ export function loadPbr(
 ): Partial<PbrMaps> {
   const file = { map: 'diff', normalMap: 'nor', roughnessMap: 'rough' } as const;
   const load = (name: string, srgb: boolean) => {
-    const t = loader.load(`/textures/${dir}/${name}.webp`);
+    const t = sharedTexture(loader, `/textures/${dir}/${name}.webp`);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.copy(repeat);
     t.anisotropy = aniso;

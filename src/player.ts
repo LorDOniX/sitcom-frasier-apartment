@@ -10,6 +10,8 @@ export class Player {
   collisions = true;
   /** Volá se po každém kroku (~0,7 m ušlé vzdálenosti) – zvuk kroků. */
   onStep?: () => void;
+  /** analogový pohyb (dotykový joystick): x = doprava, y = dopředu, délka 0..1 */
+  readonly input = new THREE.Vector2();
   private walked = 0;
   private keys = new Set<string>();
   private velocity = new THREE.Vector2();
@@ -41,9 +43,11 @@ export class Player {
 
   update(dt: number) {
     const k = this.keys;
-    const fwd = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-    const side = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
-    const speed = k.has('ShiftLeft') || k.has('ShiftRight') ? RUN_SPEED : WALK_SPEED;
+    const fwd = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0) + this.input.y;
+    const side = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0) + this.input.x;
+    // joystick: rychlost podle výchylky (lehce = pomalu), klávesy vždy plnou rychlostí
+    const analog = this.input.lengthSq() > 0 && fwd * fwd + side * side <= 1.0001 ? Math.hypot(fwd, side) : 1;
+    const speed = (k.has('ShiftLeft') || k.has('ShiftRight') ? RUN_SPEED : WALK_SPEED) * analog;
 
     const yaw = this.yaw;
     const fx = -Math.sin(yaw);

@@ -2,7 +2,7 @@
 <html lang="cs">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Elliott Bay Towers, apt. 1901</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/src/style.css" />
@@ -14,6 +14,15 @@
     <div id="hint"></div>
     <div id="room"></div>
     <div id="info" hidden></div>
+    <div id="fps" hidden></div>
+
+    <div id="touch" hidden>
+      <div id="stick" hidden><div id="knob"></div></div>
+      <button id="t-act" aria-label="Akce">E</button>
+      <button id="t-map" aria-label="Minimapa">M</button>
+      <button id="t-night" aria-label="Den / noc">☾</button>
+      <button id="t-menu" aria-label="Menu">☰</button>
+    </div>
     <canvas id="minimap" width="256" height="203"></canvas>
 
     <div id="overlay">
@@ -22,7 +31,8 @@
         <p class="sub">Procházka bytem Frasiera Cranea</p>
         <p id="loading">Načítám…</p>
         <button id="start" hidden>Klikni pro vstup</button>
-        <table>
+        <label class="quality">Kvalita: <select id="quality"></select></label>
+        <table id="keys">
           <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>chůze</td></tr>
           <tr><td>myš</td><td>rozhlížení</td></tr>
           <tr><td><kbd>Shift</kbd></td><td>rychlejší chůze</td></tr>
@@ -31,8 +41,13 @@
           <tr><td><kbd>P</kbd></td><td>podlaha: materiály / půdorys</td></tr>
           <tr><td><kbd>N</kbd></td><td>den / noc</td></tr>
           <tr><td><kbd>C</kbd></td><td>kolize zap / vyp</td></tr>
+          <tr><td><kbd>F</kbd></td><td>počítadlo FPS</td></tr>
           <tr><td><kbd>Esc</kbd></td><td>pauza</td></tr>
         </table>
+        <p id="touch-help" hidden>
+          Levý palec: chůze (joystick pod prstem) · tažení vpravo: rozhlížení<br />
+          <b>E</b> akce (dveře, světla, klavír…) · <b>M</b> minimapa · <b>☾</b> den / noc · <b>☰</b> menu
+        </p>
         <p class="credits">
           Fotografie výhledu: SounderBruce (CC BY-SA 4.0), ragesoss (CC BY-SA 2.0), Wikimedia Commons ·
           modely z bytu: R. Sebastian, 3D Warehouse · další modely a textury: Poly Haven, ambientCG (CC0) ·

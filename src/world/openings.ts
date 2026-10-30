@@ -5,6 +5,7 @@ import data from '../data/openings.json';
 import { DOOR_HEIGHT, WALL_HEIGHT } from '../config';
 import { audio } from '../audio';
 import type { Interactable } from '../interact';
+import { markShadows } from '../quality';
 import { boxBetween, pxToM, toWorld, yawFromDir, type Px } from '../plan';
 import type { CollisionWorld, Segment } from '../collision';
 import { floorHeight } from '../levels';
@@ -209,6 +210,7 @@ class HingedDoor implements Interactable {
         leaf.castShadow = false;
         this.pivot.remove(handles); // model má vlastní kliku a kukátko
         this.pivot.add(both);
+        markShadows(2);
       })
       .catch((e) => console.warn('Model vstupních dveří se nepodařilo načíst', e));
   }
@@ -229,6 +231,7 @@ class HingedDoor implements Interactable {
 
   update(dt: number) {
     const target = this.isOpen ? this.openAngle : 0;
+    if (Math.abs(target - this.angle) > 1e-4) markShadows(); // křídlo vrhá stín
     this.angle += (target - this.angle) * Math.min(1, dt * 6);
     this.pivot.rotation.y = this.baseYaw + this.angle;
   }
@@ -303,6 +306,7 @@ class SlidingDoor implements Interactable {
 
   update(dt: number) {
     const target = this.isOpen ? 1 : 0;
+    if (Math.abs(target - this.t) > 1e-4) markShadows();
     this.t += (target - this.t) * Math.min(1, dt * 5);
     this.place();
   }

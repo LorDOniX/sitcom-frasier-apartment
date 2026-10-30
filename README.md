@@ -27,7 +27,10 @@ verze z `public/`. Úvodní načtení je ~11,5 MB (noční fotka 1,1 MB se stáh
 | `P` | podlaha: materiály / barevný půdorys |
 | `N` | den / noc |
 | `C` | vypnout kolize (létání skrz stěny pro ladění) |
+| `F` | počítadlo FPS (a počet draw calls) |
 | `Esc` | pauza |
+
+Na telefonu a tabletu (dotykové zařízení bez myši) se místo zamčení kurzoru zapne dotykové ovládání: levý palec = joystick pod prstem, tažení v pravé části = rozhlížení, tlačítka **E** (akce), **M** (minimapa), **☾** (den/noc) a **☰** (menu). Kvalita (nízká / střední / vysoká) se volí v úvodním menu a ukládá do prohlížeče; bez volby mají dotyková zařízení nízkou.
 
 ## Jak to funguje
 
@@ -53,6 +56,7 @@ assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z
 * **Podlahy**: každá místnost má v `openings.json` materiál (`wood`, `carpet`, `tile`, `stone`, `corridor`). Generátor z mapy místností vyrobí nepřekrývající se masky a každý materiál je jedna rovina s `alphaMap`. Dělicí čára `room_dividers` určuje hranici dlažby a parket mezi kuchyní a jídelnou.
 * **Výhled**: `src/world/skyline.ts` – denní fotografie na výseči válce (140°) se středem za balkonem, noční zvlášť (110°), dole prodloužená a po stranách prolnutá s procedurálním pozadím, jehož obloha je navzorkovaná z okrajů fotky. Polohu horizontu a záběr lze doladit konstantami na začátku souboru.
 * **Světlo**: odpolední slunce se stínovou mapou (4096², stíny vrhají stěny, strop, dveře i nábytek) – do bytu svítí jen okny; výplň dělá polokulové světlo a `RoomEnvironment` pro odlesky. V noci svítí stropní svítidla, rozsvěcují se vypínači u dveří (`switches` ve `furniture.json`: indexy světel a poloha – bod u stěny, nebo `door` = vedle kliky dveří). Lampy (`light: true`) se zapínají přímo. Bodová světla jsou viditelná jen v noci a vypínač mění jen jejich intenzitu – změna počtu světel by překompilovala shadery.
+* **Výkon** (`src/quality.ts`): kvalita určuje rozlišení vykreslování, velikost stínové mapy (1024 / 2048 / 4096), vyhlazování hran a šířku fotky výhledu (4096 / 6144 / 8192 px). Stínová mapa slunce se přepočítává jen při změně (pohyb dveří, načtení modelu, přepnutí den/noc) – v klidu odpadá celý stínový průchod (polovina draw calls). PBR textury se stejnou mapou (různé odstíny látek) sdílejí obrázek, do GPU se nahraje jednou.
 * **Zvuk** (`src/audio.ts`): vše syntetizované přes Web Audio, žádné nahrávky – kroky podle povrchu (parkety, koberec, dlažba, kámen; koberec v obýváku podle jeho obrysu), dveře, posuvné dveře, cvaknutí vypínačů, dozvuk v koupelnách, šum města podle otevřených balkonových dveří, klavír (Bachovo Preludium C dur, volné dílo) a rádio KACL (vlastní znělka, hlas z `speechSynthesis`, generovaná hudba přes filtr malého reproduktoru). Zdroje mají polohu (`PannerNode`), posluchač je kamera.
 * **Kontrola dat**: `npm run trace` přegeneruje data a uloží `tools/out/walls_overlay.png` – půdorys s vykreslenými stěnami (červeně), dveřmi (zeleně), okny (modře) a zábradlím. Po každé úpravě JSONů se vyplatí ho otevřít.
 
@@ -97,6 +101,8 @@ src/
   interact.ts       rozhraní interaktivních objektů (E)
   audio.ts          syntetizované zvuky (Web Audio)
   info.ts           panel s popiskem zajímavosti
+  quality.ts        nastavení kvality, přepočet stínů jen při změně
+  touch.ts          dotykové ovládání (joystick, rozhlížení, tlačítka)
   world/walls.ts, openings.ts, floor.ts, skyline.ts, materials.ts
   world/furniture.ts  rozmístění nábytku, glTF modely, obrazy, akce předmětů
   world/lighting.ts   stropní světla, vypínače, okruhy světel

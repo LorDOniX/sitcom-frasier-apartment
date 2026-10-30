@@ -57,7 +57,12 @@ export class Skyline {
   private built: Partial<Record<Mode, Built>> = {};
   private mode: Mode = 'day';
 
-  constructor(manager: THREE.LoadingManager, private renderer: THREE.WebGLRenderer) {
+  /** maxPhotoWidth = strop šířky fotky výhledu (podle nastavení kvality) */
+  constructor(
+    manager: THREE.LoadingManager,
+    private renderer: THREE.WebGLRenderer,
+    private maxPhotoWidth = 8192,
+  ) {
     const bg = new THREE.Mesh(new THREE.CylinderGeometry(BG_RADIUS, BG_RADIUS, BG_HEIGHT, 64, 1, true), this.bgMat);
     // zrcadlit, aby panorama nebylo zevnitř převrácené
     bg.scale.x = -1;
@@ -98,8 +103,8 @@ export class Skyline {
   }
 
   private build(img: HTMLImageElement, def: PhotoDef): Built {
-    // větší fotky zmenšit na limit GPU
-    const maxW = Math.min(8192, this.renderer.capabilities.maxTextureSize);
+    // větší fotky zmenšit na limit GPU a nastavení kvality
+    const maxW = Math.min(this.maxPhotoWidth, this.renderer.capabilities.maxTextureSize);
     const k = Math.min(1, maxW / img.naturalWidth);
     const W = Math.round(img.naturalWidth * k);
     const H = Math.round(img.naturalHeight * k);

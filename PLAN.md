@@ -69,6 +69,7 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 
 ### Fáze 5 – optimalizace a nasazení
 * ✅ **Zmenšení pro web (29. 10. 2026)**: zdroje přesunuté do `assets/`, `npm run assets` vyrábí do `public/` GLB s meshopt + WebP a WebP textury/fotky. Podklady 44 MB → 13 MB, úvodní přenos 11,5 MB, draw calls modelů 1 308 → 113, noční fotka líně, three.js v samostatném chunku, ukazatel průběhu načítání.
+* ✅ **Kvalita a mobil (30. 10. 2026)**: volba kvality (rozlišení, stíny, vyhlazování, šířka výhledu), dotykové ovládání, stínová mapa jen při změně (v klidu polovina draw calls), sdílení PBR textur (odhad paměti textur v GPU 719 → 607 MB, nízká kvalita 540 MB), počítadlo FPS.
 * Zbývá: KTX2 textury (menší paměť GPU, potřebuje Basis transcoder), lazy loading místností / LOD, mobilní ovládání, nastavení kvality (stíny, rozlišení), statický hosting – až po vyřešení licencí podkladů (modely z 3D Warehouse a půdorys šířit nelze).
 
 ### Volitelně – „skutečný“ vzhled ze seriálu
