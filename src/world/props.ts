@@ -66,7 +66,7 @@ export class PropFactory {
         break;
       case 'counter':
         this.counter(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826', !!def.sink);
-        if (def.upper === 'open') this.passShelf(g, w, def.ceil ?? 2.75);
+        if (def.upper === 'open') this.passShelf(g, w, d, def.ceil ?? 2.75);
         else if (def.upper) this.upperCabinets(g, w, d);
         break;
       case 'island':
@@ -588,9 +588,10 @@ export class PropFactory {
 
   /**
    * Průchod z kuchyně do jídelny: nad linkou (poloostrovem) visí bílá otevřená police – vlevo dlouhé police,
-   * vpravo mřížka přihrádek, bez zad i dvířek (je přes ni vidět ke klavíru); nad ní překlad až ke stropu.
+   * vpravo mřížka přihrádek, bez zad i dvířek (je přes ni vidět ke klavíru); nad ní překlad až ke stropu
+   * a na konci do jídelny (-X) boční deska od podlahy ke stropu přes celou hloubku linky.
    */
-  private passShelf(g: THREE.Group, w: number, ceil: number) {
+  private passShelf(g: THREE.Group, w: number, d: number, ceil: number) {
     const white = this.paint('#f2efe8', 0.5);
     const u = 0.32;
     const y0 = 1.45;
@@ -609,7 +610,9 @@ export class PropFactory {
     }
     g.add(box(t, H, u, white, (split + w / 2) / 2, y0, 0));
     // překlad nad průchodem (omítka) až ke stropu
-    if (ceil > y1 + 0.05) g.add(box(w, ceil - y1, u, this.paint('#eee6d8', 0.9), 0, y1, 0));
+    const plaster = this.paint('#eee6d8', 0.9);
+    if (ceil > y1 + 0.05) g.add(box(w, ceil - y1, u, plaster, 0, y1, 0));
+    g.add(box(0.1, ceil, d + 0.04, plaster, -w / 2 - 0.05, 0, 0));
     // sklenice na polici
     const glasses: THREE.Matrix4[] = [];
     for (let i = 0; i < 6; i++) glasses.push(new THREE.Matrix4().makeTranslation(-w / 2 + 0.25 + i * 0.13, y0 + t + 0.07, 0));

@@ -46,6 +46,7 @@ const casingMat = new THREE.MeshStandardMaterial({ color: 0xf5f2ea, roughness: 0
 const frontCasingMat = new THREE.MeshStandardMaterial({ color: 0x4a2f1c, roughness: 0.4 });
 const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.4, metalness: 0.6 });
 const hiddenMat = new THREE.MeshBasicMaterial({ visible: false });
+const frontFillMat = new THREE.MeshStandardMaterial({ color: 0x9a6432, roughness: 0.5 });
 const glassMat = new THREE.MeshPhysicalMaterial({
   color: 0xcfe6ef,
   roughness: 0.05,
@@ -102,8 +103,43 @@ function addCasing(root: THREE.Object3D, H: THREE.Vector2, T: THREE.Vector2, wal
   }
 }
 
-/** Části modelu vstupních dveří (3D Warehouse), které tvoří křídlo – bez zárubně a kusu zdi. */
-const FRONT_DOOR_PARTS = ['Light_Door_Panel_Wood_frasier', 'Door_Panel_Wood_Frasier', 'Color_M04', 'Color_M08'];
+/**
+ * Části modelu vstupních dveří (3D Warehouse), které tvoří křídlo – jen dřevěné výplně. Zárubeň a kus zdi ne,
+ * kování (Color_M04/M08) taky ne: křídlo se roztahuje nerovnoměrně a klika by se zdeformovala a přečnívala.
+ */
+const FRONT_DOOR_PARTS = ['Light_Door_Panel_Wood_frasier', 'Door_Panel_Wood_Frasier'];
+
+/**
+ * Kování křídla (na obou lících): rozeta, krček a páka mířící k pantu ve výšce 1 m. Vstupní dveře navíc
+ * štítek, zámek s otočným knoflíkem a kukátko. x = vzdálenost od pantu podél křídla, z = kolmo na křídlo.
+ */
+function doorHardware(leafW: number, thick: number, front: boolean): THREE.Group {
+  const g = new THREE.Group();
+  const x = leafW - 0.07;
+  const cyl = (r: number, len: number, px: number, py: number, pz: number) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 20).rotateX(Math.PI / 2), handleMat);
+    m.position.set(px, py, pz);
+    g.add(m);
+  };
+  for (const side of [-1, 1]) {
+    const face = side * (thick / 2);
+    if (front) {
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.006), handleMat);
+      plate.position.set(x, 1.07, face + side * 0.003);
+      g.add(plate);
+      cyl(0.018, 0.02, x, 1.18, face + side * 0.013); // zámek
+      const turn = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.035, 0.012), handleMat);
+      turn.position.set(x, 1.18, face + side * 0.028);
+      g.add(turn);
+    }
+    cyl(0.028, 0.012, x, 1.0, face + side * (front ? 0.012 : 0.006)); // rozeta
+    cyl(0.008, 0.05, x, 1.0, face + side * 0.035); // krček
+    const lever = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.018, 0.018), handleMat);
+    lever.position.set(x - 0.055, 1.0, face + side * 0.06);
+    g.add(lever);
+  }
+  return g;
+}
 
 class HingedDoor implements Interactable {
   label: string;
@@ -149,14 +185,8 @@ class HingedDoor implements Interactable {
     leaf.userData.interactable = this;
     solid(leaf);
     this.pivot.add(leaf);
-    const handles = new THREE.Group();
-    for (const side of [-1, 1]) {
-      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.02), handleMat);
-      handle.position.set(leafW - 0.09, 1.0, side * (thick / 2 + 0.03));
-      handles.add(handle);
-    }
-    this.pivot.add(handles);
-    if (d.id === 'front') this.loadFrontDoor(gltf, leaf, leafW, handles);
+    this.pivot.add(doorHardware(leafW, thick, d.id === 'front'));
+    if (d.id === 'front') this.loadFrontDoor(gltf, leaf, leafW);
     this.pivot.userData.interactable = this; // i pro meshe modelu vstupních dveří
     this.pivot.position.set(H.x, 0, H.y);
     this.pivot.rotation.y = this.baseYaw;
@@ -175,7 +205,7 @@ class HingedDoor implements Interactable {
   }
 
   /** Vzhled vstupních dveří z modelu (kosočtvercové výplně); krabice křídla zůstane jako neviditelný cíl a kolize. */
-  private loadFrontDoor(gltf: GLTFLoader, leaf: THREE.Mesh, leafW: number, handles: THREE.Object3D) {
+  private loadFrontDoor(gltf: GLTFLoader, leaf: THREE.Mesh, leafW: number) {
     gltf
       .loadAsync('/models/custom/front_door.glb')
       .then((g) => {
@@ -198,7 +228,7 @@ class HingedDoor implements Interactable {
         const both = new THREE.Group().add(panel, back);
         const box = new THREE.Box3().setFromObject(panel);
         const size = box.getSize(new THREE.Vector3());
-        // zrcadlit v ose X: klika modelu je u x = max, u nás je volný konec křídla na +X
+        // zrcadlit v ose X: strana kliky v modelu (x = max) = volný konec křídla na +X
         const sx = leafW / size.x;
         const sy = (DOOR_HEIGHT - 0.01) / size.y;
         both.scale.set(-sx, sy, 1);
@@ -208,7 +238,23 @@ class HingedDoor implements Interactable {
         });
         leaf.material = hiddenMat;
         leaf.castShadow = false;
-        this.pivot.remove(handles); // model má vlastní kliku a kukátko
+        // zaslepit otvory po kování v modelu (zámek u volného konce, kukátko) – uvnitř křídla, vidět jen otvorem;
+        // celou plochu zaplnit nejde: kosočtvercové výplně jsou otvory, kterými je vidět deska na druhé straně.
+        // Poloha otvoru = poloha kování v modelu převedená stejným (zrcadleným, roztaženým) převodem jako křídlo.
+        const map = (mx: number, my: number) => new THREE.Vector2(0.01 + (box.max.x - mx) * sx, (my - box.min.y) * sy);
+        const lock = map(0.25, 1.05);
+        // jen 4 mm silné uprostřed křídla (líce vlysů jsou v modelu velmi blízko středu) a ze dřeva křídla,
+        // ať otvorem vypadají jako plné dřevo
+        const wood = parts.find((m) => (m.material as THREE.Material).name === 'Light_Door_Panel_Wood_frasier')?.material ?? frontFillMat;
+        // od okraje výplně s kosočtverci (~15 cm od volného konce) skoro k hraně křídla
+        const lockFill = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.75, 0.004), wood);
+        lockFill.position.set(leafW - 0.0775, lock.y, 0);
+        const peep = map(0.615, 1.685);
+        const peepFill = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.07, 0.004), wood);
+        peepFill.position.set(peep.x, peep.y, 0);
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.02, 20).rotateX(Math.PI / 2), handleMat);
+        lens.position.copy(peepFill.position);
+        this.pivot.add(lockFill, peepFill, lens);
         this.pivot.add(both);
         markShadows(2);
       })
