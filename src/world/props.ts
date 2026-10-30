@@ -16,6 +16,10 @@ export interface PropDef {
   color?: string;
   seed?: number;
   sink?: boolean;
+  /** barva pracovní desky (kuchyňská linka, ostrůvek) */
+  top?: string;
+  /** obrys koberce v lokálních souřadnicích [x, z] v m (místo obdélníku size) */
+  poly?: [number, number][];
 }
 
 export class PropFactory {
@@ -56,10 +60,13 @@ export class PropFactory {
         for (const [x, z] of corners(w - 0.08, d - 0.08)) g.add(box(0.04, h - 0.08, 0.04, this.lacquer(), x, 0, z));
         break;
       case 'counter':
-        this.counter(g, w, d, h, def.color ?? '#9c4a32', !!def.sink);
+        this.counter(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826', !!def.sink);
         break;
       case 'island':
-        this.island(g, w, d, h, def.color ?? '#9c4a32');
+        this.island(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826');
+        break;
+      case 'coffeetable':
+        this.coffeeTable(g, w, d, h);
         break;
       case 'cabinet':
         g.add(box(w, h, d, this.paint(def.color ?? '#c58a4a', 0.55)));
@@ -96,7 +103,8 @@ export class PropFactory {
         this.vanity(g, w, d, h);
         break;
       case 'rug':
-        this.rug(g, w, d, def.color ?? '#8e3b2e', def.seed ?? 1);
+        if (def.poly) this.carpet(g, def.poly, def.color ?? '#cbc5b8');
+        else this.rug(g, w, d, def.color ?? '#8e3b2e', def.seed ?? 1);
         break;
       default:
         return null;
@@ -294,9 +302,9 @@ export class PropFactory {
 
   // --- kuchyň ----------------------------------------------------------------
 
-  private counter(g: THREE.Group, w: number, d: number, h: number, color: string, sink: boolean) {
+  private counter(g: THREE.Group, w: number, d: number, h: number, color: string, topColor: string, sink: boolean) {
     const body = this.paint(color, 0.5);
-    const top = this.paint('#2b2826', 0.25);
+    const top = this.paint(topColor, 0.25);
     const handle = this.chrome();
     g.add(box(w, 0.1, d - 0.06, this.paint('#1a1a1a', 0.8), 0, 0, -0.03));
     g.add(box(w, h - 0.14, d - 0.04, body, 0, 0.1, -0.02));
@@ -315,9 +323,9 @@ export class PropFactory {
     }
   }
 
-  private island(g: THREE.Group, w: number, d: number, h: number, color: string) {
-    this.counter(g, w - 0.25, d - 0.25, h, color, false);
-    g.add(box(w, 0.04, d, this.paint('#2b2826', 0.25), 0, h - 0.04, 0));
+  private island(g: THREE.Group, w: number, d: number, h: number, color: string, topColor: string) {
+    this.counter(g, w - 0.25, d - 0.25, h, color, topColor, false);
+    g.add(box(w, 0.04, d, this.paint(topColor, 0.25), 0, h - 0.04, 0));
     // varná deska (v půdorysu 4 plotýnky)
     g.add(box(0.6, 0.008, 0.52, this.paint('#0a0a0a', 0.1), 0, h, 0));
     const ring = this.paint('#3a3a3a', 0.4);
@@ -326,6 +334,49 @@ export class PropFactory {
       c.position.set(x, h + 0.009, z);
       g.add(c);
     }
+  }
+
+  // --- stolky -----------------------------------------------------------------
+
+  /** Frasierův konferenční stolek: deska z ptačího javoru s černými intarziemi, čtyři žebrované černé koule, spodní deska. */
+  private coffeeTable(g: THREE.Group, w: number, d: number, h: number) {
+    const maple = this.paint('#d8b886', 0.45);
+    const inlay = this.paint('#111111', 0.35);
+    const topH = h * 0.32;
+    const baseH = 0.05;
+    const disc = 0.012;
+    const ballH = h - topH - baseH - 2 * disc;
+    g.add(box(w * 0.97, baseH, d * 0.94, maple));
+    g.add(box(w, topH, d, maple, 0, h - topH, 0));
+    const ball = ribbedBall(ballH * 0.46, ballH / 2);
+    const inset = ballH * 0.55;
+    for (const [x, z] of corners(w - 2 * inset, d - 2 * inset)) {
+      for (const y of [baseH, h - topH - disc]) {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(ballH * 0.3, ballH * 0.3, disc, 24), maple);
+        c.position.set(x, y + disc / 2, z);
+        g.add(c);
+      }
+      const b = new THREE.Mesh(ball, this.lacquer());
+      b.position.set(x, baseH + disc + ballH / 2, z);
+      g.add(b);
+    }
+    // intarzie na čele a zadní straně: krajní díly vodorovně od rohu a dolů, prostřední shora dolů, přes a nahoru
+    const lw = 0.01;
+    const y0 = h - topH;
+    const yMid = y0 + topH * 0.38;
+    const xo = w * 0.24;
+    const xi = xo - 0.035;
+    const line = (x1: number, y1: number, x2: number, y2: number, z: number) =>
+      g.add(box(Math.abs(x2 - x1) + lw, Math.abs(y2 - y1) + lw, 0.004, inlay, (x1 + x2) / 2, Math.min(y1, y2) - lw / 2, z));
+    for (const z of [d / 2 + 0.002, -d / 2 - 0.002]) {
+      for (const m of [-1, 1]) {
+        line(m * w / 2, yMid, m * xo, yMid, z);
+        line(m * xo, yMid, m * xo, y0 + lw / 2, z);
+        line(m * xi, h - lw / 2, m * xi, yMid + 0.02, z);
+      }
+      line(-xi, yMid + 0.02, xi, yMid + 0.02, z);
+    }
+    for (const m of [-1, 1]) g.add(box(lw, 0.004, d, inlay, m * xi, h, 0)); // spáry na desce
   }
 
   // --- úložné prostory ---------------------------------------------------------
@@ -477,6 +528,20 @@ export class PropFactory {
     m.receiveShadow = true;
     g.add(m);
   }
+
+  /** Jednobarevný koberec podle obrysu (obývák: světle šedobéžový koberec skoro přes celou místnost). */
+  private carpet(g: THREE.Group, poly: [number, number][], color: string) {
+    const shape = new THREE.Shape(poly.map(([x, z]) => new THREE.Vector2(x, -z)));
+    // UV ShapeGeometry jsou v metrech => textura ~0,67 m jako u obdélníkového koberce
+    const nor = loadPbr(this.loader, 'Carpet016', new THREE.Vector2(1.5, 1.5), this.aniso, ['normalMap']);
+    const m = new THREE.Mesh(
+      new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color, ...nor, roughness: 1 }),
+    );
+    m.position.y = 0.006;
+    m.receiveShadow = true;
+    g.add(m);
+  }
 }
 
 // --- pomocné funkce -----------------------------------------------------------
@@ -492,6 +557,20 @@ function rbox(w: number, h: number, d: number, mat: THREE.Material, x = 0, y = 0
   const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.max(0.001, rr)), mat);
   m.position.set(x, y + h / 2, z);
   return m;
+}
+
+/** Koule (elipsoid) se 16 svislými žebry jako nohy konferenčního stolku. */
+function ribbedBall(r: number, ry: number): THREE.BufferGeometry {
+  const geo = new THREE.SphereGeometry(r, 64, 24);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const k = 0.94 + 0.06 * Math.abs(Math.sin(8 * Math.atan2(z, x)));
+    pos.setXYZ(i, x * k, (pos.getY(i) * ry) / r, z * k);
+  }
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function corners(w: number, d: number): [number, number][] {

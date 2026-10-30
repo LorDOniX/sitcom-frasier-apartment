@@ -48,6 +48,12 @@ Bez nich byt funguje, ale **chybí pohovka, Eames, jídelní stůl, stoličky, k
 2. Zkopírovat `assets/models/custom/` (23 MB) a spustit `npm run assets`.
 3. Zkopírovat `stazene/` a převést znovu: `python3 tools/dae2glb/extract.py` → `npm run dev` → `npm run models` → `npm run assets`.
 
+Plakát Rauschenberg používá texturu z aukční fotky (`poster_rauschenberg_foto.glb`). Při převodu podle bodu 3 ho vyrob
+`node tools/poster_foto.mjs` → `npm run assets` (potřebuje `stazene/reference/19.jpg` – referenční fotky stažené
+z @frasier_reference_fotky.md, číslované stejně jako v něm; jen pro lokální použití).
+
+Pillow na Ubuntu 24.04: `sudo apt install python3-pil` (nebo `pip install --user --break-system-packages pillow`).
+
 Potřebné nástroje: Node.js 24 (npm 11), Python 3 + Pillow (`tools/trace_walls.py`, `tools/dae2glb/extract.py`),
 Google Chrome v `/usr/bin/google-chrome` jen pro převod Collada (`npm run models`, jinak `CHROME=/cesta npm run models`).
 Na Windows bez WSL: `npm run dev` a `npm run assets` fungují, Python skripty potřebují Python s Pillow.

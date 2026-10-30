@@ -34,6 +34,10 @@ interface Item {
   color?: string;
   seed?: number;
   sink?: boolean;
+  /** barva pracovní desky (kuchyň) */
+  top?: string;
+  /** obrys v px půdorysu (koberec přes celou místnost); rot se u něj ignoruje */
+  poly?: Px[];
   light?: boolean;
   /** přichytit zády k nejbližší stěně (obrazy, krb); pos = bod v místnosti u stěny, y = výška spodku */
   wall?: boolean;
@@ -109,7 +113,12 @@ export function buildFurniture(
         .then((src) => holder.add(fitModel(src.clone(), it)))
         .catch((e) => console.warn(`Model ${it.model} (${it.name}) se nepodařilo načíst`, e));
     } else if (it.kind) {
-      const obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink });
+      const poly = it.poly?.map((q): [number, number] => {
+        const v = toWorld(q);
+        return [v.x - p.x, v.y - p.y];
+      });
+      if (poly) holder.rotation.y = 0;
+      const obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink, top: it.top, poly });
       if (obj) {
         obj.traverse((o) => {
           if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;

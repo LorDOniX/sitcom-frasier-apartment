@@ -16,6 +16,7 @@ const FLOOR_MATERIALS: Record<string, { dir: string; size: number; roughness?: n
   wood: { dir: 'herringbone_parquet', size: 2.0, roughness: 0.62, env: 0.5 },
   carpet: { dir: 'Carpet016', size: 1.0 },
   tile: { dir: 'marble_tiles', size: 1.8, env: 0.6 },
+  kitchen: { dir: 'patio_tiles', size: 2.15, env: 0.6 },
   stone: { dir: 'granite_tile', size: 2.4 },
   corridor: { dir: 'Carpet012', size: 1.0 },
 };

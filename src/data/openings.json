@@ -1,5 +1,5 @@
 {
-  "_comment": "levels = výškové úrovně podlahy (ostatní je na 0): seed + boundary = zaplavená oblast ohraničená stěnami, zavřenými dveřmi (kromě open_doors) a lomenou čárou boundary; poly = přesný mnohoúhelník (schod). Pozdější úroveň přepisuje dřívější. rooms[].floor = materiál podlahy (wood, carpet, tile, stone, corridor). Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
+  "_comment": "levels = výškové úrovně podlahy (ostatní je na 0): seed + boundary = zaplavená oblast ohraničená stěnami, zavřenými dveřmi (kromě open_doors) a lomenou čárou boundary; poly = přesný mnohoúhelník (schod). Pozdější úroveň přepisuje dřívější. rooms[].floor = materiál podlahy (wood, carpet, tile, kitchen, stone, corridor). Souřadnice v px půdorysu (pudorys.jpg, 1280x1016). Výšky v metrech. hinge = pant, tip = volný konec křídla v zavřené poloze, open = kam míří křídlo v otevřené poloze.",
   "doors": [
     { "id": "front", "label": "Vstupní dveře", "hinge": [403, 769], "tip": [403, 814], "open": [440, 770], "t": 7 },
     { "id": "powder", "label": "Toaleta pro hosty", "hinge": [411, 744], "tip": [446, 744], "open": [413, 712], "t": 6 },
@@ -42,7 +42,7 @@
   ],
   "rooms": [
     { "name": "Obývací pokoj", "seed": [640, 800], "floor": "wood" },
-    { "name": "Kuchyně", "seed": [1040, 760], "floor": "tile" },
+    { "name": "Kuchyně", "seed": [1040, 760], "floor": "kitchen" },
     { "name": "Balkon", "seed": [718, 520], "floor": "stone" },
     { "name": "Jídelna a klavír", "seed": [840, 640], "floor": "wood" },
     { "name": "Předsíň", "seed": [440, 800], "floor": "wood" },
