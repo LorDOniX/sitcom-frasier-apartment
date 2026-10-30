@@ -1,16 +1,17 @@
 {
-  "_comment": "Nábytek (fáze 3). pos = střed v px půdorysu, size = [šířka, hloubka] v m (= kolizní obdélník), rot = natočení ve stupních po směru hodinových ručiček v půdorysu (0 = přední strana míří dolů), h = výška v m, y = výška spodku nad podlahou. kind = procedurální model (src/world/props.ts), model = glTF z public/models/<model>/ nebo cesta k vlastnímu .glb. scale = měřítko modelu, fit: \"box\" = natáhnout na size × h, collide: false = bez kolize, poly = obrys v px půdorysu (koberec přes celou místnost; rot se ignoruje), top = barva pracovní desky (kuchyň), wall: true = přichytit zády k nejbližší stěně, light: true = v noci svítí, hang: true = visí ze stropu (y od výšky 0, ne od podlahy). Výška podlahy pod předmětem (snížený obývák, schody) se přičítá automaticky.",
+  "_comment": "Nábytek (fáze 3). pos = střed v px půdorysu, size = [šířka, hloubka] v m (= kolizní obdélník), rot = natočení ve stupních po směru hodinových ručiček v půdorysu (0 = přední strana míří dolů), h = výška v m, y = výška spodku nad podlahou. kind = procedurální model (src/world/props.ts), model = glTF z public/models/<model>/ nebo cesta k vlastnímu .glb. scale = měřítko modelu, fit: \"box\" = natáhnout na size × h, collide: false = bez kolize, poly = obrys v px půdorysu (koberec přes celou místnost; rot se ignoruje), top = barva pracovní desky (kuchyň), wall: true = přichytit zády k nejbližší stěně, light: true = lampa, kterou jde E rozsvítit / zhasnout (on = rozsvícená na začátku, power = intenzita), hang: true = visí ze stropu (y od výšky 0, ne od podlahy). Výška podlahy pod předmětem (snížený obývák, schody) se přičítá automaticky.",
   "items": [
     {"name": "Pohovka", "model": "/models/custom/sofa.glb", "pos": [593, 757], "size": [2.0, 0.95], "rot": -30},
     {"name": "Konzolový stolek", "model": "modern_wooden_cabinet", "fit": "box", "pos": [571, 737], "size": [1.9, 0.42], "rot": -30, "h": 0.75},
-    {"name": "Lampa Corbu", "model": "/models/custom/corbu_lamp.glb", "pos": [594, 724], "size": [0.3, 0.3], "rot": -30, "y": 0.75, "collide": false},
+    {"name": "Lampa Corbu", "model": "/models/custom/corbu_lamp.glb", "pos": [594, 724], "size": [0.3, 0.3], "rot": -30, "y": 0.75, "collide": false, "light": true, "on": true, "h": 0.5, "power": 3},
+    {"name": "Rádio", "kind": "radio", "pos": [550, 749], "size": [0.34, 0.18], "rot": -30, "h": 0.2, "y": 0.75, "collide": false},
     {"name": "Konferenční stolek", "kind": "coffeetable", "pos": [632, 803], "size": [1.4, 0.8], "rot": -30, "h": 0.48},
     {"name": "Odkládací stolek", "model": "/models/custom/ball_table.glb", "pos": [537, 815], "size": [0.62, 0.62], "rot": 0},
     {"name": "Koberec", "kind": "rug", "pos": [715, 780], "size": [11.8, 6.4], "rot": 0, "color": "#cbc5b8", "collide": false, "poly": [[603, 633], [717, 747], [809, 655], [886, 732], [935, 780], [860, 867], [612, 867], [495, 752]]},
     {"name": "Martinovo křeslo", "kind": "recliner", "pos": [722, 790], "size": [0.9, 1.35], "rot": 0, "h": 1.05},
     {"name": "Martinův stolek", "model": "/models/custom/martin_table.glb", "pos": [746, 776], "size": [0.44, 0.3], "rot": 0},
     {"name": "Křeslo Eames s podnožkou", "model": "/models/custom/eames.glb", "pos": [812, 841], "size": [0.98, 1.55], "rot": 132},
-    {"name": "Stojací lampa", "kind": "floorlamp", "pos": [852, 826], "size": [0.34, 0.34], "rot": 0, "h": 1.6, "light": true},
+    {"name": "Stojací lampa", "kind": "floorlamp", "pos": [852, 826], "size": [0.34, 0.34], "rot": 0, "h": 1.6, "light": true, "on": true},
     {"name": "Kožené křeslo", "model": "modern_arm_chair_01", "pos": [678, 642], "size": [0.8, 0.85], "rot": -45},
     {"name": "Podnožka", "model": "Ottoman_01", "scale": 0.6, "pos": [703, 667], "size": [0.52, 0.38], "rot": -45},
     {"name": "Podstavec", "model": "/models/custom/pedestal.glb", "pos": [717, 712], "size": [0.4, 0.4], "rot": 0},
@@ -67,5 +68,17 @@
     {"name": "Umyvadlo", "kind": "vanity", "pos": [466, 712], "size": [0.45, 0.4], "rot": 135, "h": 0.85}
   ],
   "paintings": [],
-  "lights": [[470, 800], [610, 790], [790, 790], [800, 690], [880, 570], [1050, 780], [540, 570], [390, 440], [300, 530], [290, 230], [990, 470]]
+  "lights": [[470, 800], [610, 790], [790, 790], [800, 690], [880, 570], [1050, 780], [540, 570], [390, 440], [300, 530], [290, 230], [990, 470]],
+  "_switches": "Vypínače stropních světel: lights = indexy do pole lights, pos = bod u stěny v px (vypínač se přichytí na nejbližší stěnu), nebo door = id dveří (vypínač vedle kliky na straně, kam se dveře otvírají). on = rozsvíceno na začátku.",
+  "switches": [
+    {"label": "Předsíň", "pos": [409, 755], "lights": [0], "on": true},
+    {"label": "Obývací pokoj", "pos": [409, 761], "lights": [1, 2], "on": true},
+    {"label": "Jídelna a klavír", "pos": [964, 830], "lights": [3, 4], "on": true},
+    {"label": "Kuchyně", "pos": [996, 830], "lights": [5], "on": true},
+    {"label": "Chodba k ložnicím", "pos": [564, 577], "lights": [6]},
+    {"label": "Frasierova ložnice", "door": "master", "lights": [7]},
+    {"label": "Martinova ložnice", "door": "martin", "lights": [8]},
+    {"label": "Frasierova koupelna", "door": "master-bath", "lights": [9]},
+    {"label": "Daphnin pokoj", "door": "daphne", "lights": [10]}
+  ]
 }

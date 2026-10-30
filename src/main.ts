@@ -8,8 +8,12 @@ import { Player } from './player';
 import { buildSteps, floorHeight } from './levels';
 import { Rooms } from './rooms';
 import { buildFloor } from './world/floor';
-import { buildFurniture, buildLights } from './world/furniture';
-import { buildOpenings, type Interactable } from './world/openings';
+import { audio } from './audio';
+import { hideInfo, infoSource } from './info';
+import { interactableOf, type Interactable } from './interact';
+import { buildFurniture } from './world/furniture';
+import { buildLighting } from './world/lighting';
+import { buildOpenings } from './world/openings';
 import { Skyline } from './world/skyline';
 import { buildWalls } from './world/walls';
 
@@ -49,8 +53,11 @@ scene.add(apartment);
 apartment.add(buildWalls(collision, loader, maxAniso));
 const floors = buildFloor(loader, maxAniso);
 apartment.add(floors.group, floors.ceiling, buildSteps());
-const interactables: Interactable[] = buildOpenings(apartment, collision);
+const openings = buildOpenings(apartment, collision, manager);
 const furniture = buildFurniture(apartment, collision, loader, maxAniso);
+const switches = buildLighting(apartment);
+const circuits = [...switches, ...furniture.lamps];
+const interactables: Interactable[] = [...openings.doors, ...switches, ...furniture.interactables];
 
 const hemi = new THREE.HemisphereLight(0xeef3ff, 0xe6d8c2, 0.75);
 scene.add(hemi);
@@ -67,7 +74,6 @@ sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.03;
 sun.shadow.radius = 3;
 scene.add(sun, sun.target);
-const lamps = [...buildLights(apartment), ...furniture.nightLights];
 
 const skyline = new Skyline(manager, renderer);
 scene.add(skyline.group);
@@ -84,10 +90,7 @@ function applyDayNight() {
   scene.environmentIntensity = night ? 0.12 : 0.4;
   hemi.intensity = night ? 0.25 : 0.75;
   sun.intensity = night ? 0 : 5.5;
-  for (const l of lamps) {
-    l.intensity = night ? 9 : 0;
-    l.visible = night;
-  }
+  for (const c of circuits) c.setNight(night);
 }
 applyDayNight();
 
@@ -104,32 +107,55 @@ manager.onLoad = () => {
   $('loading').hidden = true;
   startBtn.hidden = false;
 };
-startBtn.addEventListener('click', () => player.controls.lock());
+startBtn.addEventListener('click', () => {
+  audio.start(); // AudioContext jde vytvořit jen z gesta uživatele
+  player.controls.lock();
+});
 player.controls.addEventListener('lock', () => overlay.classList.add('hidden'));
 player.controls.addEventListener('unlock', () => overlay.classList.remove('hidden'));
 
 const raycaster = new THREE.Raycaster();
 raycaster.far = INTERACT_DISTANCE;
-const targets = interactables.flatMap((i) => i.targets);
+// stěny zakrývají: přes zeď nejde cvaknout vypínačem ani otevřít dveře vedlejšího pokoje
+const targets = [...interactables.flatMap((i) => i.targets), apartment.getObjectByName('walls')!];
 let focused: Interactable | null = null;
+let infoAway = 0;
 
-function updateFocus() {
+function updateFocus(dt: number) {
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hit = raycaster.intersectObjects(targets, false)[0];
-  focused = (hit?.object.userData.interactable as Interactable) ?? null;
+  // první zásah, který patří nějakému interaktivnímu objektu (modely se dotahují později, proto rekurzivně)
+  const hits = raycaster.intersectObjects(targets, true);
+  focused = hits.length ? interactableOf(hits[0].object) : null;
   if (focused && player.controls.isLocked) {
-    hint.textContent = `E – ${focused.isOpen ? 'zavřít' : 'otevřít'}: ${focused.label}`;
+    hint.textContent = `E – ${focused.hint()}`;
     hint.style.display = 'block';
   } else {
     hint.style.display = 'none';
   }
+  // popisek se zavře, když se hráč od předmětu na chvíli odvrátí
+  const src = infoSource();
+  infoAway = src && focused !== src ? infoAway + dt : 0;
+  if (infoAway > 0.6) hideInfo();
 }
+
+/** Zvukové prostředí podle místnosti: dozvuk v koupelnách, šum města u otevřeného balkonu. */
+const BALCONY = toWorld([718, 540]);
+function updateAmbience() {
+  const p = camera.position;
+  const room = rooms.at(p.x, p.z) ?? '';
+  audio.setReverb(/koupelna|Toaleta|Prádelna/.test(room) ? 0.45 : room === 'Balkon' ? 0 : 0.05);
+  const dist = Math.hypot(p.x - BALCONY.x, p.z - BALCONY.y);
+  const level = room === 'Balkon' ? 1 : openings.balconyOpen() ? Math.max(0.06, 0.75 - dist * 0.07) : 0.03;
+  audio.setCity(level * (night ? 0.6 : 1));
+  audio.updateListener(camera);
+}
+player.onStep = () => audio.step(rooms.surfaceAt(camera.position.x, camera.position.z));
 
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   switch (e.code) {
     case 'KeyE':
-      focused?.toggle();
+      focused?.interact(new THREE.Vector2(camera.position.x, camera.position.z));
       break;
     case 'KeyM':
       minimap.toggle();
@@ -154,7 +180,7 @@ window.addEventListener('resize', () => {
 });
 
 // ladění z konzole / automatických testů
-Object.assign(window, { __frasier: { camera, player, interactables, toPlan, toWorld, scene, floorHeight } });
+Object.assign(window, { __frasier: { camera, player, interactables, toPlan, toWorld, scene, floorHeight, audio, rooms, focus: () => focused } });
 
 // --- smyčka ----------------------------------------------------------------
 const timer = new THREE.Timer();
@@ -162,8 +188,9 @@ renderer.setAnimationLoop((time) => {
   timer.update(time);
   const dt = Math.min(timer.getDelta(), 0.05);
   if (player.controls.isLocked) player.update(dt);
-  for (const i of interactables) i.update(dt);
-  updateFocus();
+  for (const i of interactables) i.update?.(dt);
+  updateFocus(dt);
+  updateAmbience();
   const p = camera.position;
   minimap.draw(p.x, p.z, player.yaw);
   roomLabel.textContent = rooms.at(p.x, p.z) ?? '';

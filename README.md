@@ -22,7 +22,7 @@ verze z `public/`. Úvodní načtení je ~11,5 MB (noční fotka 1,1 MB se stáh
 | `W` `A` `S` `D` / šipky | chůze |
 | myš | rozhlížení (po kliknutí se zamkne kurzor) |
 | `Shift` | rychlejší chůze |
-| `E` | otevřít / zavřít dveře, na které míří zaměřovač (i posuvné dveře na balkon) |
+| `E` | interakce s tím, na co míří zaměřovač: dveře (otevřou se od hráče), posuvné dveře na balkon, vypínače světel, lampy, klavír, rádio KACL, popisky zajímavostí |
 | `M` | minimapa |
 | `P` | podlaha: materiály / barevný půdorys |
 | `N` | den / noc |
@@ -38,7 +38,8 @@ tools/plan_edits.json┘                    public/rooms.png         (mapa míst
                                           public/floors/*.png      (masky materiálů podlah po výškových úrovních)
                                           src/data/levels.json     (obrysy výškových úrovní)
 src/data/openings.json  (dveře, okna, balkon, místnosti + jejich podlaha, výškové úrovně – ručně zadané v px půdorysu)
-src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, světla)
+src/data/furniture.json (nábytek: procedurální `kind` nebo glTF `model`, obrazy, stropní světla, vypínače)
+src/data/info.json      (texty popisků zajímavostí podle názvu předmětu)
 public/models/          (glTF modely CC0 – viz public/models/README.md)
 assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z 3D Warehouse, fotky)
   ──► npm run assets ──► public/textures/*.webp, public/models/*.glb, public/models/custom/*.glb, public/skybox_*.webp
@@ -46,12 +47,13 @@ assets/                 (zdroje: textury JPG, modely glTF z Poly Haven, modely z
 
 * **Stěny**: prahování černé barvy → morfologické otevření → ruční úpravy (`tools/plan_edits.json`: smazat text/nábytek, dokreslit chybějící zdi) → trasování obrysu → zjednodušení a srovnání hran na násobky 45° → `ExtrudeGeometry` do výšky 2,75 m.
 * **Měřítko**: 0,027 m/px (≈ 37 px na metr), odhadnuto z šířky dveří a postelí. Mění se v `src/config.ts`.
-* **Dveře**: v `openings.json` je pant (`hinge`), volný konec křídla (`tip`) a bod, kam se otvírají (`open`). Nadpraží se generuje automaticky.
+* **Dveře**: v `openings.json` je pant (`hinge`), volný konec křídla (`tip`) a výchozí strana otvírání (`open`). Hráč dveře otevře vždy od sebe. Nadpraží se generuje automaticky; vstupní dveře mají vzhled z modelu `front_door.glb` (jen křídlo, zrcadlené na obě strany).
 * **Výškové úrovně**: obývák, jídelna, kuchyně a předsíň jsou o dva schody (2 × 17 cm) níž než zbytek bytu; žlutý pás kolem balkonu v půdorysu je mezistupeň. Zadání je v `levels` v `openings.json` (oblast zaplavená od semínka po stěny a dělicí čáru, schod jako mnohoúhelník), `npm run trace` z něj vyrobí `src/data/levels.json` a masky podlah pro každou úroveň. Výška podlahy (`src/levels.ts`) posouvá hráče, nábytek, dveře, okna a lišty; stěny začínají u nejnižší podlahy.
 * **Kolize**: hráč je kruh o poloměru 22 cm, úsečky stěn / oken / nábytku jsou v prostorové mřížce, dveře se přidávají dynamicky podle aktuálního natočení.
 * **Podlahy**: každá místnost má v `openings.json` materiál (`wood`, `carpet`, `tile`, `stone`, `corridor`). Generátor z mapy místností vyrobí nepřekrývající se masky a každý materiál je jedna rovina s `alphaMap`. Dělicí čára `room_dividers` určuje hranici dlažby a parket mezi kuchyní a jídelnou.
 * **Výhled**: `src/world/skyline.ts` – denní fotografie na výseči válce (140°) se středem za balkonem, noční zvlášť (110°), dole prodloužená a po stranách prolnutá s procedurálním pozadím, jehož obloha je navzorkovaná z okrajů fotky. Polohu horizontu a záběr lze doladit konstantami na začátku souboru.
-* **Světlo**: odpolední slunce se stínovou mapou (4096², stíny vrhají stěny, strop, dveře i nábytek) – do bytu svítí jen okny; výplň dělá polokulové světlo a `RoomEnvironment` pro odlesky. V noci svítí stropní svítidla.
+* **Světlo**: odpolední slunce se stínovou mapou (4096², stíny vrhají stěny, strop, dveře i nábytek) – do bytu svítí jen okny; výplň dělá polokulové světlo a `RoomEnvironment` pro odlesky. V noci svítí stropní svítidla, rozsvěcují se vypínači u dveří (`switches` ve `furniture.json`: indexy světel a poloha – bod u stěny, nebo `door` = vedle kliky dveří). Lampy (`light: true`) se zapínají přímo. Bodová světla jsou viditelná jen v noci a vypínač mění jen jejich intenzitu – změna počtu světel by překompilovala shadery.
+* **Zvuk** (`src/audio.ts`): vše syntetizované přes Web Audio, žádné nahrávky – kroky podle povrchu (parkety, koberec, dlažba, kámen; koberec v obýváku podle jeho obrysu), dveře, posuvné dveře, cvaknutí vypínačů, dozvuk v koupelnách, šum města podle otevřených balkonových dveří, klavír (Bachovo Preludium C dur, volné dílo) a rádio KACL (vlastní znělka, hlas z `speechSynthesis`, generovaná hudba přes filtr malého reproduktoru). Zdroje mají polohu (`PannerNode`), posluchač je kamera.
 * **Kontrola dat**: `npm run trace` přegeneruje data a uloží `tools/out/walls_overlay.png` – půdorys s vykreslenými stěnami (červeně), dveřmi (zeleně), okny (modře) a zábradlím. Po každé úpravě JSONů se vyplatí ho otevřít.
 
 Nástroj potřebuje jen Python 3 + Pillow.
@@ -91,9 +93,14 @@ src/
   plan.ts           převod px půdorysu <-> metry
   player.ts         pohyb první osobou (PointerLockControls)
   collision.ts      kolize kruh × úsečky
-  minimap.ts, rooms.ts
+  minimap.ts, rooms.ts (název místnosti a povrch pod hráčem)
+  interact.ts       rozhraní interaktivních objektů (E)
+  audio.ts          syntetizované zvuky (Web Audio)
+  info.ts           panel s popiskem zajímavosti
   world/walls.ts, openings.ts, floor.ts, skyline.ts, materials.ts
-  world/furniture.ts  rozmístění nábytku, glTF modely, obrazy, světla
+  world/furniture.ts  rozmístění nábytku, glTF modely, obrazy, akce předmětů
+  world/lighting.ts   stropní světla, vypínače, okruhy světel
+  world/actions.ts    klavír, rádio, popisky
   world/props.ts      procedurální nábytek (pohovka, Martinovo křeslo, klavír, kuchyň, koupelny…)
   data/*.json
 tools/trace_walls.py, plan_edits.json

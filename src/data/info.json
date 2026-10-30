@@ -1,0 +1,29 @@
+{
+  "_comment": "Popisky zajímavostí (fáze 4). Klíč = name položky ve furniture.json; text = odstavce oddělené prázdným řádkem (\\n\\n).",
+  "items": {
+    "Křeslo Eames s podnožkou": {
+      "title": "Křeslo Eames s podnožkou",
+      "text": "Eames Lounge Chair navrhli Charles a Ray Eamesovi v roce 1956 pro firmu Herman Miller. Dodnes patří mezi nejznámější kusy moderního designu.\n\nPro Frasiera je to symbol vytříbeného vkusu – a přesný opak křesla, které si do bytu přivezl jeho otec."
+    },
+    "Martinovo křeslo": {
+      "title": "Martinovo křeslo",
+      "text": "Ošoupané pruhované polohovací křeslo, které si Martin přivezl, když se k Frasierovi nastěhoval. Na opěrkách je slepené lepicí páskou.\n\nKe zbytku pečlivě vybraného zařízení se vůbec nehodí – Frasierovi je trnem v oku, Martin by ho nevyměnil za nic."
+    },
+    "Pohovka": {
+      "title": "Pohovka",
+      "text": "Hranatá pohovka potažená semišem v odstínu mocha s volnými polštáři. Aukční síň Julien's Auctions ji při dražbě rekvizit z bytu popsala jako kus inspirovaný stylem Coco Chanel."
+    },
+    "Konferenční stolek": {
+      "title": "Konferenční stolek",
+      "text": "Masivní deska ze světlého dřeva s černými intarziemi leží na čtyřech žebrovaných černých koulích. Originál z natáčení se dražil spolu s dalšími rekvizitami bytu v Julien's Auctions."
+    },
+    "Plakát Rauschenberg": {
+      "title": "Robert Rauschenberg – Venice-USA",
+      "text": "Velkoformátový plakát Roberta Rauschenberga s nápisy „ACE“, „November“ a „Venice-USA“, signovaný s letopočtem ’77.\n\nModerní umění na stěnách mělo podtrhnout Frasierovu kultivovanost; originální plakát z bytu se později dražil."
+    },
+    "Krb": {
+      "title": "Krb",
+      "text": "Krb zasazený do stěny obložené kamennými deskami, která nahoře končí velkým obloukem. Je jednou z dominant obývacího pokoje a pozadím mnoha scén na pohovce."
+    }
+  }
+}

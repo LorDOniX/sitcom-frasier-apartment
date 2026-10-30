@@ -60,6 +60,7 @@ Zbývá z původního plánu fáze 2 (přesunuto do dalších fází):
 * Zatím chybí: knihovny, bar s lahvemi sherry, Eddieho pelíšek, horní kuchyňské skříňky, drobnosti na policích, model vstupních dveří (převedený, nezapojený).
 
 ### Fáze 4 – interakce a atmosféra
+* ✅ **Hotovo (30. 10. 2026)**: vypínače stropních světel po místnostech, lampy na E, popisky zajímavostí (info panel), dveře se otevírají od hráče, vstupní dveře z modelu, syntetizované zvuky (kroky podle povrchu, dveře, vypínače, dozvuk v koupelnách, šum města, klavír s Bachovým preludiem, rádio KACL s vlastní znělkou). Původní zadání:
 * Rozsvěcení světel vypínači (`E` na vypínač), stmívání.
 * Klavír zahraje melodii, rádio KACL se znělkou „Hello Seattle, I'm listening…“ (pozor na autorská práva – vlastní nahrávka).
 * Zvuky kroků podle povrchu, ozvěna v koupelně, šum města na balkoně.

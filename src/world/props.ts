@@ -65,6 +65,9 @@ export class PropFactory {
       case 'island':
         this.island(g, w, d, h, def.color ?? '#9c4a32', def.top ?? '#2b2826');
         break;
+      case 'radio':
+        this.radio(g, w, d, h);
+        break;
       case 'coffeetable':
         this.coffeeTable(g, w, d, h);
         break;
@@ -379,6 +382,24 @@ export class PropFactory {
     for (const m of [-1, 1]) g.add(box(lw, 0.004, d, inlay, m * xi, h, 0)); // spáry na desce
   }
 
+  /** Stolní rádio v ořechové skříňce: látkový reproduktor, stupnice (v noci po zapnutí svítí) a dva knoflíky. */
+  private radio(g: THREE.Group, w: number, d: number, h: number) {
+    g.add(rbox(w, h, d, this.paint('#4a2e1c', 0.4), 0, 0, 0, 0.015));
+    g.add(box(w * 0.42, h * 0.7, 0.006, this.fabric('Fabric061', '#3a332b', 6), -w * 0.24, h * 0.15, d / 2));
+    const dial = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.4, h * 0.22, 0.006),
+      new THREE.MeshStandardMaterial({ color: 0xe8dcb8, roughness: 0.3, emissive: 0xffb860, emissiveIntensity: 0 }),
+    );
+    dial.name = 'dial';
+    dial.position.set(w * 0.22, h * 0.62, d / 2);
+    g.add(dial);
+    for (const x of [w * 0.12, w * 0.32]) {
+      const k = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.014, 20).rotateX(Math.PI / 2), this.brass());
+      k.position.set(x, h * 0.25, d / 2 + 0.007);
+      g.add(k);
+    }
+  }
+
   // --- úložné prostory ---------------------------------------------------------
 
   /** Vestavěná skříň až ke stropu (Daphnin pokoj): javorový rám, dvoje dveře s mřížkovou výplní, nadpraží. */
@@ -464,7 +485,7 @@ export class PropFactory {
     g.add(pole);
     const shade = new THREE.Mesh(
       new THREE.CylinderGeometry(0.14, 0.24, 0.26, 40, 1, true),
-      this.mat('shade', () => new THREE.MeshStandardMaterial({ color: 0xf1e6cf, roughness: 0.9, side: THREE.DoubleSide, emissive: 0x2a2010 })),
+      this.mat('shade', () => new THREE.MeshStandardMaterial({ name: 'lampshade', color: 0xf1e6cf, roughness: 0.9, side: THREE.DoubleSide, emissive: 0x2a2010 })),
     );
     shade.position.y = h - 0.13;
     g.add(shade);

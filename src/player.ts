@@ -8,6 +8,9 @@ import { floorHeight } from './levels';
 export class Player {
   readonly controls: PointerLockControls;
   collisions = true;
+  /** Volá se po každém kroku (~0,7 m ušlé vzdálenosti) – zvuk kroků. */
+  onStep?: () => void;
+  private walked = 0;
   private keys = new Set<string>();
   private velocity = new THREE.Vector2();
   private bob = 0;
@@ -54,6 +57,7 @@ export class Player {
     this.velocity.lerp(want, Math.min(1, dt * 10));
 
     const pos = new THREE.Vector2(this.camera.position.x, this.camera.position.z);
+    const before = pos.clone();
     const step = this.velocity.clone().multiplyScalar(dt);
     // pohyb po menších krocích, aby se neprošlo tenkou stěnou
     const n = Math.max(1, Math.ceil(step.length() / 0.05));
@@ -64,6 +68,11 @@ export class Player {
     }
     this.camera.position.x = pos.x;
     this.camera.position.z = pos.y;
+    this.walked += pos.distanceTo(before);
+    if (this.walked > 0.7) {
+      this.walked = 0;
+      this.onStep?.();
+    }
 
     // výška podlahy (snížený obývák, schody) – plynule, ať schod není skok
     this.floorY += (floorHeight(pos.x, pos.y) - this.floorY) * Math.min(1, dt * 10);

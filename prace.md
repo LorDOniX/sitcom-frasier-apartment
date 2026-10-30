@@ -23,6 +23,7 @@ Hotové fáze (podrobně v @PLAN.md, technický popis v @README.md, zdroje v @ST
 - **Fáze 1** – byt z půdorysu (stěny automaticky z `pudorys.jpg`), WASD + myš, 10 dveří + 2 posuvné na balkon (E), kolize, minimapa (M), název místnosti.
 - **Fáze 2** – PBR podlahy podle místností, omítka, lišty, zárubně, slunce se stíny, den/noc (N).
 - **Fáze 3** – nábytek: procedurální (Martinovo křeslo, klavír, kuchyň, koupelny, postele) + Poly Haven (CC0) + 19 modelů z 3D Warehouse (pohovka, Eames, jídelní souprava, stoličky, krb, lednice, obrazy…); výhled z fotek Kerry Parku (den i noc, CC BY-SA).
+- **Fáze 4** – vypínače světel, lampy, popisky zajímavostí, dveře od hráče, model vstupních dveří, syntetizované zvuky, klavír, rádio KACL.
 - **Fáze 5 (část)** – zmenšení pro web: zdroje v `assets/`, `npm run assets` → `public/` (meshopt + WebP), 44 MB → 13 MB, draw calls modelů 1 308 → 113.
 
 # Zprovoznění na jiném PC
@@ -60,14 +61,16 @@ Na Windows bez WSL: `npm run dev` a `npm run assets` fungují, Python skripty po
 
 # Další práce
 
-## Fáze 4 – interakce a atmosféra (na řadě)
-1. **Vypínače světel** – po místnostech vypínač u dveří (E), světla zapínat jednotlivě; nahradit globální „noc = vše svítí“. Data vypínačů do `src/data/furniture.json` nebo nového `lights.json` (místnost → svítidla).
-2. **Stojací lampa a lampa Corbu** – zapínání přes E (lampa Corbu je model `corbu_lamp.glb` na konzoli za pohovkou).
-3. **Popisky zajímavostí** – po zaměření (zaměřovač) a E info panel: Eames křeslo, Martinovo křeslo, klavír, obrazy (autor, příběh ze seriálu), výhled z balkonu. Texty česky, data v JSON.
-4. **Zvuky** – kroky podle povrchu (parkety / koberec / dlažba – materiál je v `rooms[].floor` v `openings.json`), otevírání dveří, šum města na balkoně, ozvěna v koupelně. Jen vlastní nebo CC0 nahrávky (freesound.org s filtrem CC0). Web Audio / `THREE.PositionalAudio`.
-5. **Klavír** – E zahraje pár tónů (vlastní/CC0 samply).
-6. **Rádio KACL** – fiktivní rádio s vlastní znělkou (originální znělka je chráněná).
-7. **Dveře** – otevírat „od hráče“ (podle strany, kde hráč stojí); zapojit model `front_door.glb` jako vzhled vstupních dveří.
+## Fáze 4 – interakce a atmosféra (hotovo 30. 10. 2026)
+1. ✅ **Vypínače světel** – 9 vypínačů (`switches` ve `furniture.json`), u dveří pokojů se umisťují automaticky vedle kliky; noc už nerozsvěcí vše.
+2. ✅ **Stojací lampa a lampa Corbu** – E rozsvítí / zhasne (`light: true`, `on`, `power`).
+3. ✅ **Popisky zajímavostí** – Eames, Martinovo křeslo, pohovka, konferenční stolek, plakát Rauschenberg, krb (`src/data/info.json`).
+4. ✅ **Zvuky** – vše syntetizované (Web Audio, `src/audio.ts`), žádné nahrávky: kroky podle povrchu, dveře, vypínače, dozvuk v koupelnách, šum města podle otevřeného balkonu.
+5. ✅ **Klavír** – Bachovo Preludium C dur, takty 1–8 (volné dílo).
+6. ✅ **Rádio KACL** – na konzoli za pohovkou; vlastní znělka, hlas přes `speechSynthesis`, generovaná hudba.
+7. ✅ **Dveře** – otevírají se od hráče; vstupní dveře mají vzhled z `front_door.glb`.
+
+Možná vylepšení: popisek výhledu z balkonu a dalších obrazů (chybí ověřené informace), světla v ostatních koupelnách, toaletě, komoře a prádelně (nemají svítidlo), hlas rádia jde mimo prostorový zvuk (`speechSynthesis` nejde napojit na Web Audio).
 
 ## Drobnosti, které zbývají
 - Chybí: knihovny, bar s lahvemi sherry, Eddieho pelíšek, horní kuchyňské skříňky, drobnosti na policích.

@@ -2,10 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import data from '../data/furniture.json';
-import { WALL_HEIGHT } from '../config';
+import info from '../data/info.json';
 import { toWorld, type Px } from '../plan';
 import type { CollisionWorld } from '../collision';
+import type { Interactable } from '../interact';
 import { floorHeight } from '../levels';
+import { InfoItem, PianoPlayer, RadioSet } from './actions';
+import { Circuit } from './lighting';
 import { abstractPainting, PropFactory } from './props';
 import { nearestWallFace } from './walls';
 
@@ -38,7 +41,10 @@ interface Item {
   top?: string;
   /** obrys v px půdorysu (koberec přes celou místnost); rot se u něj ignoruje */
   poly?: Px[];
+  /** lampa: E ji rozsvítí / zhasne; on = rozsvícená na začátku, power = intenzita světla */
   light?: boolean;
+  on?: boolean;
+  power?: number;
   /** přichytit zády k nejbližší stěně (obrazy, krb); pos = bod v místnosti u stěny, y = výška spodku */
   wall?: boolean;
   /** visí ze stropu: y se měří od výšky 0, ne od podlahy pod ním (lustry nad sníženou částí bytu) */
@@ -57,9 +63,13 @@ interface Painting {
 }
 
 export interface FurnitureResult {
-  /** Světla, která svítí jen v noci (stojací lampa apod.). */
-  nightLights: THREE.PointLight[];
+  /** Lampy (E je rozsvítí / zhasne). */
+  lamps: Circuit[];
+  /** Vše, s čím jde zacházet klávesou E: lampy, klavír, rádio, popisky. */
+  interactables: Interactable[];
 }
+
+const infoItems = info.items as Record<string, { title: string; text: string }>;
 
 export function buildFurniture(
   root: THREE.Object3D,
@@ -70,7 +80,8 @@ export function buildFurniture(
   const props = new PropFactory(loader, aniso);
   const gltf = new GLTFLoader(loader.manager).setMeshoptDecoder(MeshoptDecoder);
   const models = new Map<string, Promise<THREE.Object3D>>();
-  const nightLights: THREE.PointLight[] = [];
+  const lamps: Circuit[] = [];
+  const interactables: Interactable[] = [];
 
   const loadModel = (name: string) => {
     let p = models.get(name);
@@ -112,13 +123,15 @@ export function buildFurniture(
       loadModel(it.model)
         .then((src) => holder.add(fitModel(src.clone(), it)))
         .catch((e) => console.warn(`Model ${it.model} (${it.name}) se nepodařilo načíst`, e));
-    } else if (it.kind) {
+    }
+    let obj: THREE.Object3D | null = null;
+    if (!it.model && it.kind) {
       const poly = it.poly?.map((q): [number, number] => {
         const v = toWorld(q);
         return [v.x - p.x, v.y - p.y];
       });
       if (poly) holder.rotation.y = 0;
-      const obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink, top: it.top, poly });
+      obj = props.build({ kind: it.kind, size: it.size, h: it.h ?? 0.8, color: it.color, seed: it.seed, sink: it.sink, top: it.top, poly });
       if (obj) {
         obj.traverse((o) => {
           if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
@@ -127,12 +140,12 @@ export function buildFurniture(
       }
     }
 
-    if (it.light) {
-      const l = new THREE.PointLight(0xffd9a0, 0, 6, 1.6);
-      l.position.set(0, (it.h ?? 1.6) - 0.15, 0);
-      l.visible = false;
-      holder.add(l);
-      nightLights.push(l);
+    const act = makeAction(it, holder, obj);
+    if (act) {
+      holder.userData.interactable = act;
+      act.targets.push(holder);
+      interactables.push(act);
+      if (act instanceof Circuit) lamps.push(act);
     }
 
     if (it.collide !== false) {
@@ -151,7 +164,39 @@ export function buildFurniture(
   }
 
   for (const pt of data.paintings as unknown as Painting[]) root.add(buildPainting(pt, loader, aniso));
-  return { nightLights };
+  return { lamps, interactables };
+}
+
+/** Co dělá E u předmětu: lampa (light), klavír, rádio, nebo popisek z info.json. */
+function makeAction(it: Item, holder: THREE.Object3D, obj: THREE.Object3D | null): Interactable | null {
+  holder.updateMatrixWorld(true);
+  const center = holder.localToWorld(new THREE.Vector3(0, (it.h ?? 0.8) / 2, 0));
+  if (it.light) {
+    const l = new THREE.PointLight(0xffd9a0, 0, 6, 1.6);
+    l.position.set(0, (it.h ?? 1.6) - 0.15, 0);
+    holder.add(l);
+    // záře stínidla (procedurální lampa má materiál „lampshade“); vlastní kopie, ať svítí jen tahle lampa
+    const glow: THREE.MeshStandardMaterial[] = [];
+    obj?.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh && (m.material as THREE.Material).name === 'lampshade') {
+        const mat = (m.material as THREE.MeshStandardMaterial).clone();
+        mat.emissive.set(0xffd9a0);
+        m.material = mat;
+        glow.push(mat);
+      }
+    });
+    return new Circuit(it.name, [l], glow, !!it.on, it.power ?? 6, center);
+  }
+  if (it.kind === 'piano') return new PianoPlayer(center);
+  if (it.kind === 'radio') {
+    const dial = obj?.getObjectByName('dial') as THREE.Mesh | undefined;
+    return new RadioSet(center, (on) => {
+      if (dial) (dial.material as THREE.MeshStandardMaterial).emissiveIntensity = on ? 1 : 0;
+    });
+  }
+  const text = infoItems[it.name];
+  return text ? new InfoItem(text.title, text.text) : null;
 }
 
 /** Vycentruje model na podlahu a přizpůsobí velikost. */
@@ -212,22 +257,4 @@ function buildPainting(pt: Painting, loader: THREE.TextureLoader, aniso: number)
   g.position.set(face.point.x + face.normal.x * 0.03, floorHeight(p.x, p.y) + pt.y, face.point.y + face.normal.y * 0.03);
   g.rotation.y = Math.atan2(face.normal.x, face.normal.y);
   return g;
-}
-
-/** Stropní svítidla: bodové světlo kousek pod stropem + svítící disk na stropě. */
-export function buildLights(root: THREE.Object3D): THREE.PointLight[] {
-  const lights: THREE.PointLight[] = [];
-  const discGeo = new THREE.CircleGeometry(0.18, 24).rotateX(Math.PI / 2);
-  const discMat = new THREE.MeshBasicMaterial({ color: 0xfff6e6, toneMapped: false });
-  for (const px of data.lights as unknown as Px[]) {
-    const p = toWorld(px);
-    const l = new THREE.PointLight(0xffe2b8, 3, 10, 1.5);
-    l.position.set(p.x, 2.1, p.y);
-    root.add(l);
-    lights.push(l);
-    const disc = new THREE.Mesh(discGeo, discMat);
-    disc.position.set(p.x, WALL_HEIGHT - 0.01, p.y);
-    root.add(disc);
-  }
-  return lights;
 }

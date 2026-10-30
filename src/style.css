@@ -49,6 +49,39 @@ body {
   pointer-events: none;
 }
 
+#info {
+  position: fixed;
+  left: 24px;
+  top: 24px;
+  max-width: 380px;
+  padding: 14px 18px;
+  border-left: 3px solid #c98a2e;
+  border-radius: 4px;
+  background: rgba(20, 22, 30, 0.82);
+  font-size: 14px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+#info[hidden] {
+  display: none;
+}
+
+#info h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+#info p {
+  margin: 0 0 8px;
+}
+
+#info p:last-child {
+  margin-bottom: 0;
+}
+
 #minimap {
   position: fixed;
   right: 14px;
